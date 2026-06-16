@@ -16,24 +16,6 @@ const inputCsv = document.getElementById('inputCsv');
 const btnNuevo = document.getElementById('btnNuevoContacto');
 const panelNuevo = document.getElementById('panelNuevo');
 
-// Panel de login
-const loginPanel = document.getElementById('loginPanel');
-const loginForm = document.getElementById('loginForm');
-const loggedInPanel = document.getElementById('loggedInPanel');
-const loginEmail = document.getElementById('loginEmail');
-const loginPassword = document.getElementById('loginPassword');
-const loginRemember = document.getElementById('loginRemember');
-const btnLogin = document.getElementById('btnLogin');
-const btnLogout = document.getElementById('btnLogout');
-const loginError = document.getElementById('loginError');
-const rolBadge = document.getElementById('rolBadge');
-const usuarioNombre = document.getElementById('usuarioNombre');
-const loginStatus = document.getElementById('loginStatus');
-
-// Estado de autenticación
-let usuarioActual = null;
-let rolesActuales = [];
-
 const guardarNuevo = document.getElementById('guardarNuevoContacto');
 const cancelarNuevo = document.getElementById('cancelarNuevoContacto');
 
@@ -89,7 +71,7 @@ nuevoExtension?.addEventListener('input', (e) => {
 // Cargar contactos
 async function cargarContactos(q = '') {
     try {
-        const respuesta = await fetch('/api/contactos?q=' + encodeURIComponent(q));
+        const respuesta = await fetch('obtener.php?q=' + encodeURIComponent(q));
         const datos = await respuesta.json();
         contactosActuales = Array.isArray(datos) ? datos : [];
         renderizarContactos(contactosActuales);
@@ -327,11 +309,11 @@ async function guardarContactoInline(id, tarjeta) {
         return;
     }
 
-    const datos = { nombre: nombreVal, departamento: deptoVal, extension: extVal, email: emailVal };
+    const datos = { id: id.toString(), nombre: nombreVal, departamento: deptoVal, extension: extVal, email: emailVal };
 
     try {
-        const respuesta = await fetch(`/api/contactos/${id}`, {
-            method: 'PUT',
+        const respuesta = await fetch('guardar.php', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
@@ -398,7 +380,7 @@ function cancelarEliminacionIndividual(id) {
 // Eliminar individual real en PHP
 async function ejecutarEliminacionReal(id) {
     try {
-        const respuesta = await fetch(`/api/contactos/${id}`, { method: 'DELETE' });
+        const respuesta = await fetch(`eliminar.php?id=${id}`);
         const resultado = await respuesta.json();
 
         if (!resultado.ok) {
@@ -469,7 +451,7 @@ async function eliminarTodosContactos() {
                 } else {
                     clearInterval(intervalo);
                     try {
-                        const respuesta = await fetch('/api/contactos/batch/todos', { method: 'DELETE' });
+                        const respuesta = await fetch('eliminar.php?todos=1');
                         const resultado = await respuesta.json();
 
                         if (!resultado.ok) {
@@ -517,15 +499,16 @@ function limpiarFormulario() {
 
 // Guardar contacto nuevo
 async function guardarContacto() {
-    const datos = {
-        nombre: nuevoNombre.value.trim(),
-        departamento: nuevoDepartamento.value.trim(),
-        extension: nuevoExtension.value.trim(),
-        email: nuevoEmail.value.trim()
+    const datos = { 
+        id: '', 
+        nombre: nuevoNombre.value.trim(), 
+        departamento: nuevoDepartamento.value.trim(), 
+        extension: nuevoExtension.value.trim(), 
+        email: nuevoEmail.value.trim() 
     };
 
     try {
-        const respuesta = await fetch('/api/contactos', {
+        const respuesta = await fetch('guardar.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
@@ -659,7 +642,7 @@ async function importarCSV(archivo) {
     const formData = new FormData();
     formData.append('archivo_csv', archivo);
     try {
-        const respuesta = await fetch('/api/contactos/importar', { method: 'POST', body: formData });
+        const respuesta = await fetch('importar.php', { method: 'POST', body: formData });
         const datos = await respuesta.json();
         mostrarMensaje(datos.mensaje || datos.error, !datos.ok);
         cargarContactos(inputBusqueda.value);
@@ -690,120 +673,4 @@ btnExportarPdf?.addEventListener('click', () => {
 });
 
 // Inicio
-async function inicializar() {
-    await verificarAutenticacion();
-    cargarContactos();
-}
-
-async function verificarAutenticacion() {
-    try {
-        const resp = await fetch('/api/auth/check');
-        const datos = await resp.json();
-        if (datos.logueado && datos.usuario) {
-            usuarioActual = datos.usuario;
-            rolesActuales = datos.usuario.roles;
-            mostrarPanelLogueado();
-            actualizarPermisos();
-        } else {
-            mostrarPanelLogin();
-        }
-    } catch (e) {
-        console.error('Error verificando autenticación:', e);
-        mostrarPanelLogin();
-    }
-}
-
-function mostrarPanelLogin() {
-    loginForm.classList.remove('oculto');
-    loggedInPanel.classList.add('oculto');
-    btnNuevo.style.display = 'none';
-    btnImportarCsv.style.display = 'none';
-    btnEliminarTodos.style.display = 'none';
-}
-
-function mostrarPanelLogueado() {
-    loginForm.classList.add('oculto');
-    loggedInPanel.classList.remove('oculto');
-    usuarioNombre.textContent = usuarioActual.nombre || usuarioActual.email;
-    const rolePrincipal = usuarioActual.roles.includes('ROLE_ADMIN') ? 'ADMIN' : 'ELEVADO';
-    rolBadge.textContent = rolePrincipal;
-    rolBadge.className = `login-panel__badge badge--${rolePrincipal.toLowerCase()}`;
-}
-
-async function login(email, password, recordar) {
-    try {
-        const resp = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `_username=${encodeURIComponent(email)}&_password=${encodeURIComponent(password)}&_remember_me=${recordar ? '1' : '0'}`
-        });
-        const datos = await resp.json();
-        if (datos.ok && datos.usuario) {
-            usuarioActual = datos.usuario;
-            rolesActuales = datos.usuario.roles;
-            mostrarPanelLogueado();
-            actualizarPermisos();
-            limpiarFormularioLogin();
-            loginError.classList.add('oculto');
-        } else {
-            mostrarErrorLogin(datos.error || 'Error en login');
-        }
-    } catch (e) {
-        console.error('Error en login:', e);
-        mostrarErrorLogin('Error de conexión');
-    }
-}
-
-async function logout() {
-    try {
-        await fetch('/api/auth/logout');
-        usuarioActual = null;
-        rolesActuales = [];
-        mostrarPanelLogin();
-        cargarContactos();
-    } catch (e) {
-        console.error('Error en logout:', e);
-        mostrarMensaje('Error cerrando sesión', true);
-    }
-}
-
-function mostrarErrorLogin(error) {
-    loginError.textContent = error;
-    loginError.classList.remove('oculto');
-}
-
-function limpiarFormularioLogin() {
-    loginEmail.value = '';
-    loginPassword.value = '';
-    loginRemember.checked = false;
-}
-
-function actualizarPermisos() {
-    const esElevado = rolesActuales.includes('ROLE_ELEVATED') || rolesActuales.includes('ROLE_ADMIN');
-    const esAdmin = rolesActuales.includes('ROLE_ADMIN');
-
-    btnNuevo.style.display = esElevado ? 'block' : 'none';
-    btnImportarCsv.style.display = esAdmin ? 'block' : 'none';
-    btnEliminarTodos.style.display = esAdmin ? 'block' : 'none';
-}
-
-btnLogin?.addEventListener('click', () => {
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value;
-    const recordar = loginRemember.checked;
-
-    if (!email || !password) {
-        mostrarErrorLogin('Email y contraseña obligatorios');
-        return;
-    }
-
-    login(email, password, recordar);
-});
-
-btnLogout?.addEventListener('click', logout);
-
-loginPassword?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') btnLogin?.click();
-});
-
-inicializar();
+cargarContactos();

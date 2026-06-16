@@ -20,7 +20,7 @@ security:
             provider: app_user_provider
             form_login:
                 login_path: /api/auth/login
-                check_path: /api/auth/login
+                check_path: /api/auth/login/check
                 use_referer: true
             remember_me:
                 secret: '%kernel.secret%'

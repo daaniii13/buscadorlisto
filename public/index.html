@@ -4,116 +4,87 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buscador de contactos</title>
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./styles.css?v=3">
 </head>
 <body>
-    <!-- Panel de Login (esquina superior derecha) -->
-    <div class="login-panel" id="loginPanel">
-        <div class="login-panel__header">
-            <h3>Acceso</h3>
-            <span class="login-panel__status" id="loginStatus"></span>
-        </div>
+    
+    <div class="perfil-contenedor" id="contenedorLoginFlotante">
+        <button id="btnPerfilToggle" class="boton boton--secundario">Iniciar Sesión</button>
+        
+        <div id="panelPerfil" class="panel-desplegable oculto">
+            <div id="loginForm" class="login-form">
+                <h3 style="margin-bottom: 12px; font-size: 15px; font-weight: 800;">Acceso Administrativo</h3>
+                <div class="campo" style="margin-bottom: 8px;">
+                    <input type="email" id="loginEmail" placeholder="correo@ejemplo.com">
+                </div>
+                <div class="campo" style="margin-bottom: 8px;">
+                    <input type="password" id="loginPassword" placeholder="Contraseña">
+                </div>
+                <button type="button" class="boton boton--principal" style="width: 100%;" id="btnLogin">Ingresar</button>
+                <small class="login-panel__error oculto" id="loginError"></small>
+            </div>
 
-        <!-- Formulario de login (visible cuando no hay sesión) -->
-        <div id="loginForm" class="login-panel__form">
-            <div class="campo">
-                <label for="loginEmail">Email</label>
-                <input type="email" id="loginEmail" placeholder="correo@ejemplo.com">
+            <div id="loggedInPanel" class="oculto">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <span class="login-panel__badge" id="rolBadge"></span>
+                    <p id="usuarioNombre" style="font-weight: 700; margin: 0; font-size: 14px;"></p>
+                </div>
+                <button type="button" class="boton boton--principal" id="btnNuevoUsuario" style="width: 100%; margin-bottom: 10px; border-color: #8b5cf6; color: #8b5cf6; display: none;">+ Crear Usuario</button>
+                <button type="button" class="boton boton--secundario" style="width: 100%;" id="btnLogout">Cerrar sesión</button>
             </div>
-            <div class="campo">
-                <label for="loginPassword">Contraseña</label>
-                <input type="password" id="loginPassword" placeholder="Contraseña">
-            </div>
-            <div class="campo__checkbox">
-                <input type="checkbox" id="loginRemember">
-                <label for="loginRemember">Recuérdame (30 días)</label>
-            </div>
-            <button type="button" class="boton boton--principal" id="btnLogin">Ingresar</button>
-            <small class="login-panel__error oculto" id="loginError"></small>
-        </div>
-
-        <!-- Panel de usuario logueado (visible cuando hay sesión) -->
-        <div id="loggedInPanel" class="login-panel__logged oculto">
-            <div class="login-panel__user">
-                <div class="login-panel__badge" id="rolBadge"></div>
-                <p id="usuarioNombre">Usuario</p>
-            </div>
-            <button type="button" class="boton boton--secundario" id="btnLogout">Cerrar sesión</button>
         </div>
     </div>
 
     <div class="contenedor">
         <div class="cabecera">
-            <div>
-                <h1>Buscador de contactos</h1>
-            </div>
-            <div class="cabecera_acciones">
-                <button type="button" class="boton boton--principal" id="btnNuevoContacto">
-                    + Nuevo contacto
-                </button>
-                <button type="button" class="boton boton--secundario" id="btnExportarPdf">
-                    Exportar PDF
-                </button>
-                <button type="button" class="boton boton--secundario" id="btnImportarCsv">
-                    Importar CSV
-                </button>
-                <button type="button" class="boton boton--secundario" id="btnExportarCsv">
-                    Exportar CSV
-                </button>
-                <button type="button"
-                        class="boton boton--eliminar"
-                        id="btnEliminarTodos">
-                    Eliminar todos
-                </button>
+            <h1>Buscador de contactos</h1>
+            <div class="cabecera_acciones" id="accionesAdmin" style="display: none;">
+                <button type="button" class="boton boton--principal" id="btnNuevoContacto">+ Nuevo contacto</button>
+                <button type="button" class="boton boton--secundario" id="btnExportarPdf">Exportar PDF</button>
+                <button type="button" class="boton boton--secundario" id="btnImportarCsv">Importar CSV</button>
+                <button type="button" class="boton boton--secundario" id="btnExportarCsv">Exportar CSV</button>
+                <button type="button" class="boton boton--eliminar" id="btnEliminarTodos">Eliminar todos</button>
                 <input type="file" id="inputCsv" accept=".csv" style="display: none;">
             </div>
         </div>
+        
         <div class="buscador">
             <input type="text" id="busqueda" placeholder="Busca el contacto" autofocus>
         </div>
         <div class="estado" id="estado"></div>
+        
         <div class="panel-nuevo oculto" id="panelNuevo">
             <div class="tarjeta tarjeta--edicion">
                 <div class="tarjeta_grid">
-
-                    <div class="campo">
-                        <label>Nombre</label>
-                        <input type="text" id="nuevoNombre" maxlength="50">
-                    </div>
-                    <div class="campo">
-                        <label>Departamento</label>
-                        <input type="text" id="nuevoDepartamento" maxlength="50">
-                    </div>
-                    <div class="campo">
-                        <label>Extensión</label>
-                        <input type="number" id="nuevoExtension" maxlength="15">
-                    </div>
-                    <div class="campo">
-                        <label>Correo electrónico</label>
-                        <input type="email" id="nuevoEmail" maxlength="50">
-                        <small class="campo__error oculto" id="errorNuevoEmail">
-                            El correo debe contener un @ válido.
-                        </small>
-                    </div>
+                    <div class="campo"><label>Nombre</label><input type="text" id="nuevoNombre" required></div>
+                    <div class="campo"><label>Departamento</label><input type="text" id="nuevoDepartamento" required></div>
+                    <div class="campo"><label>Extensión</label><input type="number" id="nuevoExtension" required></div>
+                    <div class="campo"><label>Correo</label><input type="email" id="nuevoEmail"></div>
                 </div>
                 <div class="tarjeta_acciones">
-                    <button type="button"
-                            class="boton boton--guardar-edicion"
-                            id="guardarNuevoContacto">
-                        Guardar cambios
-                    </button>
-                    <button type="button"
-                            class="boton boton--secundario"
-                            id="cancelarNuevoContacto">
-                        Cancelar
-                    </button>
+                    <button type="button" class="boton boton--guardar-edicion" id="guardarNuevoContacto">Guardar</button>
+                    <button type="button" class="boton boton--secundario" id="cancelarNuevoContacto">Cancelar</button>
                 </div>
             </div>
         </div>
+
+        <div class="panel-nuevo oculto" id="panelNuevoUsuario">
+            <div class="tarjeta tarjeta--auth" style="border-left-color: #8b5cf6;">
+                <h3 style="margin-bottom: 15px; color: #6d28d9;">Nuevo usuario (Permisos Elevados)</h3>
+                <div class="tarjeta_grid">
+                    <div class="campo"><label>Nombre*</label><input type="text" id="nuevoUsuarioNombre" required></div>
+                    <div class="campo"><label>Email*</label><input type="email" id="nuevoUsuarioEmail" required></div>
+                    <div class="campo"><label>Contraseña*</label><input type="password" id="nuevoUsuarioPassword" required></div>
+                </div>
+                <div class="tarjeta_acciones">
+                    <button type="button" class="boton boton--guardar-edicion" id="guardarNuevoUsuario">Crear usuario</button>
+                    <button type="button" class="boton boton--secundario" id="cancelarNuevoUsuario">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
         <div class="resultados" id="resultados"></div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="./script.js"></script>
+    <script src="./script.js?v=3"></script>
 </body>
 </html>

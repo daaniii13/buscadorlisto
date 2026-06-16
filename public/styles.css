@@ -1,11 +1,7 @@
-/* Reset*/
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+/* Reset */
+*{ margin:0; padding:0; box-sizing:border-box; }
 
-/*Body*/
+/* Body */
 body{
     font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background:#f3f4f6;
@@ -13,262 +9,96 @@ body{
     padding:20px;
 }
 
-/* Contenedor*/
+/* Contenedor principal */
 .contenedor{
     max-width:1200px;
-    margin: 60px auto 0;
+    margin: 60px auto 0; 
 }
 
-/* Cabecera*/
-.cabecera{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:16px;
-    margin-bottom:18px;
-    flex-wrap:wrap;
-}
+/* Botones y Cabecera */
+.cabecera{ display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:18px; flex-wrap:wrap; }
+.cabecera h1{ font-size:28px; font-weight:800; color:#1e293b; }
+.cabecera_acciones { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.cabecera h1{
-    font-size:28px;
-    font-weight:800;
-    color:#1e293b;
-}
-
-/* Botones de la cabecera */
-.cabecera_acciones{    
-    display:flex;
-    gap:10px; 
-    flex-wrap:wrap;
-}
-
-/* Botones*/
 .boton{
-    border:none;
-    border-radius:999px;
-    height:44px;
-    padding:0 20px;
-    font-size:14px;
-    font-weight:700;
-    cursor:pointer;
-    transition:.2s;
-    outline: none;
+    border:none; border-radius:999px; height:44px; padding:0 20px;
+    font-size:14px; font-weight:700; cursor:pointer; transition:.2s; outline: none;
 }
+.boton:hover{ transform:translateY(-1px); }
+.boton--principal{ background:#fff; border:1px solid #2563eb; color:#111; }
+.boton--secundario{ background:#e5e7eb; border:1px solid #d1d5db; color:#111827; }
+.boton--guardar-edicion{ background:#fff; border:1px solid #22c55e; color:#16a34a; }
+.boton--eliminar { background: #fff; border: 1px solid #dc2626; color: #dc2626; }
+.boton--eliminar:hover { background: #fef2f2; }
+.boton--deshacer { background: #dc2626; color: #fff; border: 1px solid #dc2626; animation: pulse 1.5s infinite; }
+.boton--confirmar { background:#dc2626 !important; color:white !important; }
+.boton--confirmar:hover{ background:#b91c1c !important; }
 
-.boton:hover{
-    transform:translateY(-1px);
-}
-
-/* Accesibilidad visual */
-.boton:focus-visible, 
-#busqueda:focus-visible, 
-.input-inline:focus-visible, 
-.tarjeta:focus-visible {
-    outline: 3px solid #2563eb !important;
-    outline-offset: 2px !important;
+/* Accesibilidad teclado: Foco visible */
+.boton:focus-visible, #busqueda:focus-visible, .input-inline:focus-visible, .tarjeta:focus-visible, select:focus-visible {
+    outline: 3px solid #2563eb !important; outline-offset: 2px !important;
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2) !important;
 }
 
-.boton--principal{
-    background:#fff;
-    border:1px solid #2563eb;
-    color:#111;
-}
-
-.boton--secundario{
-    background:#e5e7eb;
-    border:1px solid #d1d5db;
-    color:#111827;
-}
-
-.boton--guardar-edicion{
-    background:#fff;
-    border:1px solid #22c55e;
-    color:#16a34a;
-}
-
-/* Buscador */
-.buscador{
-    margin-bottom:14px;
-}
-
+/* Buscador y Estado */
+.buscador{ margin-bottom:14px; }
 #busqueda{
-    width:100%;
-    height:52px;
-    border-radius:18px;
-    border:1px solid #432c49;
-    background:#fff;
-    padding:0 16px;
-    font-size:15px;
-    outline:none;
+    width:100%; height:52px; border-radius:18px; border:1px solid #432c49;
+    background:#fff; padding:0 16px; font-size:15px; outline:none;
 }
+.estado{ margin-bottom:16px; color:#64748b; font-size:14px; }
 
-/* Estado */
-.estado{
-    margin-bottom:16px;
-    color:#64748b;
-    font-size:14px;
-}
-
-/* Panel de nuevo contacto */
-.panel-nuevo{
-    margin-bottom:14px;
-}
-
-.tarjeta--edicion{
-    background:#fff;
-    border-radius:22px;
-    border-left:6px solid transparent;
-    padding:18px 22px;
-    box-shadow:
-        0 3px 10px rgba(0,0,0,.05);
-}
-
-/* Grid formulario */
-.tarjeta_grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:14px;
-}
-
-/* Campos */
-.campo{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-}
-
-.campo label{
-    font-size:14px;
-    font-weight:700;
-}
-
-.campo input{
-    height:48px;
-    border:1px solid #2563eb;
-    border-radius:16px;
-    padding:0 14px;
-    font-size:14px;
-    background:#fff;
-    outline:none;
-}
-
-.campo input:focus{
-    border-color:#111827;
-}
-
-/* Errores */
-.campo__error{
-    color:#dc2626;
-    font-size:12px;
-}
-
-/* Botones form */
-.tarjeta_acciones{
-    display:flex;
-    gap:10px;
-    margin-top:18px;
-    flex-wrap:wrap;
-}
+/* Paneles de creación */
+.panel-nuevo { margin-bottom: 14px; }
+.tarjeta--edicion { background: #fff; border-radius: 22px; padding: 18px 22px; box-shadow: 0 3px 10px rgba(0,0,0,.05); border-left: 6px solid transparent; }
+.tarjeta_grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+.campo{ display:flex; flex-direction:column; gap:6px; }
+.campo label{ font-size:14px; font-weight:700; }
+.campo input{ height:48px; border:1px solid #d1d5db; border-radius:12px; padding:0 14px; font-size:14px; outline:none; }
+.tarjeta_acciones{ display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
 
 /* Resultados */
-.resultados{
-    display:flex;
-    flex-direction:column;
-    gap:14px;
-}
-
-/* Tarjeta de contacto */
+.resultados{ display:flex; flex-direction:column; gap:14px; }
 .tarjeta{
-    width:100%;
-    background:#fff;
-    border-radius:22px;
-    border-left:6px solid #e5e7eb;
-    padding:18px 22px;
-    box-shadow:
-        0 3px 10px rgba(0,0,0,.05);
-    outline: none;
+    width:100%; background:#fff; border-radius:22px; border-left:6px solid #e5e7eb;
+    padding:18px 22px; box-shadow:0 3px 10px rgba(0,0,0,.05); outline: none;
+}
+.tarjeta h3{ font-size:18px; margin-bottom:14px; color:#14213d; }
+.tarjeta p{ margin:8px 0; font-size:15px; line-height:1.35; color:#111827; }
+.tarjeta strong{ font-weight:800; }
+.tarjeta_acciones-contacto { display: flex; gap: 10px; margin-top: 14px; justify-content: flex-end; }
+.tarjeta--advertencia { border-left-color: #dc2626 !important; background-color: #fff5f5; }
+
+.oculto{ display:none !important; }
+
+/* =========================================
+   Contenedor Perfil / Desplegable Login 
+   ========================================= */
+.perfil-contenedor {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
 }
 
-/* Título de la tarjeta */
-.tarjeta h3{
-    font-size:18px;
-    margin-bottom:14px;
-    color:#14213d;
+.panel-desplegable {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 10px;
+    background: #ffffff;
+    width: 280px; /* Evita que ocupe toda la pantalla */
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    border: 1px solid #e5e7eb;
+    padding: 16px;
 }
 
-/* Texto de la tarjeta */
-.tarjeta p{
-    margin:8px 0;
-    font-size:15px;
-    line-height:1.35;
-    color:#111827;
-}
+.campo__checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4b5563; }
+.login-panel__error { display: block; color: #dc2626; font-size: 12px; text-align: center; font-weight: 600; margin-top: 8px; }
+.login-panel__badge { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 999px; }
+.badge--admin { background: #fee2e2; color: #b91c1c; }
+.badge--elevado { background: #e0e7ff; color: #4338ca; }
 
-.tarjeta strong{
-    font-weight:800;
-}
-
-/* Oculto*/
-.oculto{
-    display:none;
-}
-
-/* Responsive */
-@media (max-width:768px){
-    body{
-        padding:12px;
-    }
-    .tarjeta_grid{
-        grid-template-columns:1fr;
-    }
-}
-
-/* Contenedor de botones en las tarjetas de contacto */
-.tarjeta_acciones-contacto {
-    display: flex;
-    gap: 10px;
-    margin-top: 14px;
-    justify-content: flex-end;
-}
-
-/* Botón de eliminar con estilo sutil destructivo */
-.boton--eliminar {
-    background: #fff;
-    border: 1px solid #dc2626;
-    color: #dc2626;
-}
-
-.boton--eliminar:hover {
-    background: #fef2f2;
-}
-
-/* Botón de deshacer durante la cuenta atrás */
-.boton--deshacer {
-    background: #dc2626;
-    color: #fff;
-    border: 1px solid #dc2626;
-    animation: pulse 1.5s infinite;
-}
-
-/* Efecto visual de advertencia en la tarjeta que se va a borrar */
-.tarjeta--advertencia {
-    border-left-color: #dc2626 !important;
-    background-color: #fff5f5;
-    transition: background-color 0.3s ease;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
-}
-
-.boton--confirmar{
-    background:#dc2626 !important;
-    color:white !important;
-}
-
-.boton--confirmar:hover{
-    background:#b91c1c !important;
-}
+@media (max-width:768px){ body{ padding:12px; } .tarjeta_grid{ grid-template-columns:1fr; } }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
