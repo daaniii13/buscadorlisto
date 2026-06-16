@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de contactos</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <!-- Panel de Login (esquina superior derecha) -->
+    <div class="login-panel" id="loginPanel">
+        <div class="login-panel__header">
+            <h3>Acceso</h3>
+            <span class="login-panel__status" id="loginStatus"></span>
+        </div>
+
+        <!-- Formulario de login (visible cuando no hay sesión) -->
+        <div id="loginForm" class="login-panel__form">
+            <div class="campo">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" placeholder="correo@ejemplo.com">
+            </div>
+            <div class="campo">
+                <label for="loginPassword">Contraseña</label>
+                <input type="password" id="loginPassword" placeholder="Contraseña">
+            </div>
+            <div class="campo__checkbox">
+                <input type="checkbox" id="loginRemember">
+                <label for="loginRemember">Recuérdame (30 días)</label>
+            </div>
+            <button type="button" class="boton boton--principal" id="btnLogin">Ingresar</button>
+            <small class="login-panel__error oculto" id="loginError"></small>
+        </div>
+
+        <!-- Panel de usuario logueado (visible cuando hay sesión) -->
+        <div id="loggedInPanel" class="login-panel__logged oculto">
+            <div class="login-panel__user">
+                <div class="login-panel__badge" id="rolBadge"></div>
+                <p id="usuarioNombre">Usuario</p>
+            </div>
+            <button type="button" class="boton boton--secundario" id="btnLogout">Cerrar sesión</button>
+        </div>
+    </div>
+
+    <div class="contenedor">
+        <div class="cabecera">
+            <div>
+                <h1>Buscador de contactos</h1>
+            </div>
+            <div class="cabecera_acciones">
+                <button type="button" class="boton boton--principal" id="btnNuevoContacto">
+                    + Nuevo contacto
+                </button>
+                <button type="button" class="boton boton--secundario" id="btnExportarPdf">
+                    Exportar PDF
+                </button>
+                <button type="button" class="boton boton--secundario" id="btnImportarCsv">
+                    Importar CSV
+                </button>
+                <button type="button" class="boton boton--secundario" id="btnExportarCsv">
+                    Exportar CSV
+                </button>
+                <button type="button"
+                        class="boton boton--eliminar"
+                        id="btnEliminarTodos">
+                    Eliminar todos
+                </button>
+                <input type="file" id="inputCsv" accept=".csv" style="display: none;">
+            </div>
+        </div>
+        <div class="buscador">
+            <input type="text" id="busqueda" placeholder="Busca el contacto" autofocus>
+        </div>
+        <div class="estado" id="estado"></div>
+        <div class="panel-nuevo oculto" id="panelNuevo">
+            <div class="tarjeta tarjeta--edicion">
+                <div class="tarjeta_grid">
+
+                    <div class="campo">
+                        <label>Nombre</label>
+                        <input type="text" id="nuevoNombre" maxlength="50">
+                    </div>
+                    <div class="campo">
+                        <label>Departamento</label>
+                        <input type="text" id="nuevoDepartamento" maxlength="50">
+                    </div>
+                    <div class="campo">
+                        <label>Extensión</label>
+                        <input type="number" id="nuevoExtension" maxlength="15">
+                    </div>
+                    <div class="campo">
+                        <label>Correo electrónico</label>
+                        <input type="email" id="nuevoEmail" maxlength="50">
+                        <small class="campo__error oculto" id="errorNuevoEmail">
+                            El correo debe contener un @ válido.
+                        </small>
+                    </div>
+                </div>
+                <div class="tarjeta_acciones">
+                    <button type="button"
+                            class="boton boton--guardar-edicion"
+                            id="guardarNuevoContacto">
+                        Guardar cambios
+                    </button>
+                    <button type="button"
+                            class="boton boton--secundario"
+                            id="cancelarNuevoContacto">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="resultados" id="resultados"></div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="./script.js"></script>
+</body>
+</html>
