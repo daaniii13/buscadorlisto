@@ -1,9 +1,7 @@
 security:
-    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
-    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         app_user_provider:
             entity:
@@ -12,37 +10,19 @@ security:
 
     firewalls:
         dev:
-            # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
         main:
             lazy: true
             provider: app_user_provider
-            form_login:
-                login_path: /api/auth/login
-                check_path: /api/auth/login/check
-                use_referer: true
-            remember_me:
-                secret: '%kernel.secret%'
-                lifetime: 2592000 # 30 días en segundos
             logout:
                 path: /api/auth/logout
                 target: /index.html
 
-    # Note: Only the *first* matching rule is applied
     access_control:
+        # Permitimos acceso público a las rutas de auth para que tu lógica manual funcione
+        - { path: ^/api/auth/, roles: PUBLIC_ACCESS }
         - { path: ^/api/users, roles: ROLE_ADMIN }
         - { path: ^/api/contactos, methods: [POST, PUT, DELETE], roles: [ROLE_ADMIN, ROLE_ELEVATED] }
         - { path: ^/api/contactos/importar, methods: [POST], roles: ROLE_ADMIN }
         - { path: ^/api/contactos/batch/todos, methods: [DELETE], roles: ROLE_ADMIN }
-
-when@test:
-    security:
-        password_hashers:
-            # Password hashers are resource-intensive by design to ensure security.
-            # In tests, it's safe to reduce their cost to improve performance.
-            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
-                algorithm: auto
-                cost: 4 # Lowest possible value for bcrypt
-                time_cost: 3 # Lowest possible value for argon
-                memory_cost: 10 # Lowest possible value for argon

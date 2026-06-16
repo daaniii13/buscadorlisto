@@ -68,10 +68,10 @@ nuevoExtension?.addEventListener('input', (e) => {
     }
 });
 
-// Cargar contactos
+// Cargar contactos (Modificado para API Symfony)
 async function cargarContactos(q = '') {
     try {
-        const respuesta = await fetch('obtener.php?q=' + encodeURIComponent(q));
+        const respuesta = await fetch('/api/contactos?q=' + encodeURIComponent(q));
         const datos = await respuesta.json();
         contactosActuales = Array.isArray(datos) ? datos : [];
         renderizarContactos(contactosActuales);
@@ -297,7 +297,7 @@ function renderizarContactos(contactos) {
     });
 }
 
-// Guarda los datos directamente desde los campos inline de la tarjeta editada
+// Guarda los datos directamente (Modificado para API Symfony PUT)
 async function guardarContactoInline(id, tarjeta) {
     const nombreVal = tarjeta.querySelector(`#editNombre-${id}`).value.trim();
     const deptoVal = tarjeta.querySelector(`#editDepartamento-${id}`).value.trim();
@@ -309,17 +309,22 @@ async function guardarContactoInline(id, tarjeta) {
         return;
     }
 
-    const datos = { id: id.toString(), nombre: nombreVal, departamento: deptoVal, extension: extVal, email: emailVal };
+    if (emailVal !== '' && !emailVal.includes('@')) {
+        mostrarMensaje('Formato de correo inválido', true);
+        return;
+    }
+
+    const datos = { nombre: nombreVal, departamento: deptoVal, extension: extVal, email: emailVal };
 
     try {
-        const respuesta = await fetch('guardar.php', {
-            method: 'POST',
+        const respuesta = await fetch(`/api/contactos/${id}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
         const resultado = await respuesta.json();
 
-        if (!resultado.ok) {
+        if (!respuesta.ok || !resultado.ok) {
             mostrarMensaje(resultado.error || 'Error guardando', true);
             return;
         }
@@ -335,7 +340,6 @@ async function guardarContactoInline(id, tarjeta) {
     }
 }
 
-// Lanza la cuenta atrás asíncrona de una tarjeta sin interferir con las otras
 function iniciarContadorEliminar(id) {
     if (timersEliminar[id]) return;
 
@@ -365,7 +369,6 @@ function iniciarContadorEliminar(id) {
     timersEliminar[id] = intervaloId;
 }
 
-// Cancela la eliminación de un contacto en concreto de forma inmediata y local
 function cancelarEliminacionIndividual(id) {
     if (timersEliminar[id]) {
         clearInterval(timersEliminar[id]);
@@ -377,16 +380,16 @@ function cancelarEliminacionIndividual(id) {
     document.getElementById(`tarjeta-${id}`)?.focus();
 }
 
-// Eliminar individual real en PHP
+// Eliminar individual real (Modificado para API Symfony DELETE)
 async function ejecutarEliminacionReal(id) {
     try {
-        const respuesta = await fetch(`eliminar.php?id=${id}`);
+        const respuesta = await fetch(`/api/contactos/${id}`, { method: 'DELETE' });
         const resultado = await respuesta.json();
 
-        if (!resultado.ok) {
+        if (!respuesta.ok || !resultado.ok) {
             mostrarMensaje(resultado.error || 'Error al eliminar', true);
         } else {
-            mostrarMensaje('Contacto eliminado correctamente', true);
+            mostrarMensaje('Contacto eliminado correctamente');
         }
         cargarContactos(inputBusqueda.value);
     } catch (error) {
@@ -396,7 +399,7 @@ async function ejecutarEliminacionReal(id) {
     }
 }
 
-// Eliminar todos
+// Eliminar todos (Modificado API y con el 3er aviso incorporado)
 async function eliminarTodosContactos() {
     if (!contactosActuales.length) {
         mostrarMensaje('No hay contactos para eliminar', true);
@@ -417,6 +420,12 @@ async function eliminarTodosContactos() {
         const continuarAlContador = () => {
             const segundoSeguro = confirm('¿Estás seguro de completar esta acción?');
             if (!segundoSeguro) {
+                cargarContactos(inputBusqueda.value);
+                return;
+            }
+
+            const tercerSeguro = confirm('ADVERTENCIA FINAL: Acción irreversible.\n¿Borrar TODOS los contactos definitivamente?');
+            if (!tercerSeguro) {
                 cargarContactos(inputBusqueda.value);
                 return;
             }
@@ -451,16 +460,16 @@ async function eliminarTodosContactos() {
                 } else {
                     clearInterval(intervalo);
                     try {
-                        const respuesta = await fetch('eliminar.php?todos=1');
+                        const respuesta = await fetch('/api/contactos/batch/todos', { method: 'DELETE' });
                         const resultado = await respuesta.json();
 
-                        if (!resultado.ok) {
+                        if (!respuesta.ok || !resultado.ok) {
                             mostrarMensaje(resultado.error || 'Error eliminando', true);
                             return;
                         }
 
                         await cargarContactos(inputBusqueda.value);
-                        mostrarMensaje('Todos los contactos se han eliminado correctamente');
+                        mostrarMensaje(`Los ${resultado.cantidad || 0} contactos se han eliminado correctamente`);
                     } catch (error) {
                         console.error(error);
                         mostrarMensaje('Error de conexión al eliminar los contactos', true);
@@ -487,7 +496,6 @@ async function eliminarTodosContactos() {
     }, 250);
 }
 
-// Limpiar formulario superior
 function limpiarFormulario() {
     idEditar = null;
     guardarNuevo.textContent = 'Guardar cambios';
@@ -497,25 +505,35 @@ function limpiarFormulario() {
     nuevoEmail.value = '';
 }
 
-// Guardar contacto nuevo
+// Guardar contacto nuevo (Modificado para API Symfony POST y validaciones)
 async function guardarContacto() {
+    const emailVal = nuevoEmail.value.trim();
+    if (emailVal !== '' && !emailVal.includes('@')) {
+        mostrarMensaje('Formato de correo inválido', true);
+        return;
+    }
+
+    if (!nuevoNombre.value.trim() || !nuevoDepartamento.value.trim() || !nuevoExtension.value.trim()) {
+         mostrarMensaje('Faltan campos obligatorios', true);
+         return;
+    }
+
     const datos = { 
-        id: '', 
         nombre: nuevoNombre.value.trim(), 
         departamento: nuevoDepartamento.value.trim(), 
         extension: nuevoExtension.value.trim(), 
-        email: nuevoEmail.value.trim() 
+        email: emailVal 
     };
 
     try {
-        const respuesta = await fetch('guardar.php', {
+        const respuesta = await fetch('/api/contactos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
         const resultado = await respuesta.json();
 
-        if (!resultado.ok) {
+        if (!respuesta.ok || !resultado.ok) {
             mostrarMensaje(resultado.error || 'Error guardando', true);
             return;
         }
@@ -637,14 +655,14 @@ function exportarCSV(esRespaldo = false) {
     if (!esRespaldo) mostrarMensaje('CSV exportado correctamente.', false);
 }
 
-// Importar CSV
+// Importar CSV (Modificado para API Symfony POST)
 async function importarCSV(archivo) {
     const formData = new FormData();
     formData.append('archivo_csv', archivo);
     try {
-        const respuesta = await fetch('importar.php', { method: 'POST', body: formData });
+        const respuesta = await fetch('/api/contactos/importar', { method: 'POST', body: formData });
         const datos = await respuesta.json();
-        mostrarMensaje(datos.mensaje || datos.error, !datos.ok);
+        mostrarMensaje(datos.mensaje || datos.error, !respuesta.ok);
         cargarContactos(inputBusqueda.value);
     } catch (error) {
         console.error(error);
@@ -674,3 +692,79 @@ btnExportarPdf?.addEventListener('click', () => {
 
 // Inicio
 cargarContactos();
+
+
+// --- NUEVA LÓGICA DE USUARIOS ---
+const panelNuevoUsuario = document.getElementById('panelNuevoUsuario');
+const btnNuevoUsuario = document.getElementById('btnNuevoUsuario');
+const guardarNuevoUsuario = document.getElementById('guardarNuevoUsuario');
+const cancelarNuevoUsuario = document.getElementById('cancelarNuevoUsuario');
+
+btnNuevoUsuario?.addEventListener('click', () => {
+    panelNuevoUsuario.classList.remove('oculto');
+    document.getElementById('nuevoUsuarioNombre').value = '';
+    document.getElementById('nuevoUsuarioEmail').value = '';
+    document.getElementById('nuevoUsuarioPassword').value = '';
+    document.getElementById('nuevoUsuarioNombre').focus();
+});
+
+cancelarNuevoUsuario?.addEventListener('click', () => {
+    panelNuevoUsuario.classList.add('oculto');
+});
+
+guardarNuevoUsuario?.addEventListener('click', async () => {
+    const nombre = document.getElementById('nuevoUsuarioNombre').value.trim();
+    const email = document.getElementById('nuevoUsuarioEmail').value.trim();
+    const password = document.getElementById('nuevoUsuarioPassword').value.trim();
+
+    if (!email.includes('@') || !password || !nombre) {
+        mostrarMensaje('Rellena todos los campos correctamente', true);
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, roles: ['ROLE_ELEVATED'] })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+            mostrarMensaje(data.error || 'Error al crear usuario', true);
+        } else {
+            mostrarMensaje('Usuario creado exitosamente');
+            panelNuevoUsuario.classList.add('oculto');
+        }
+    } catch (error) {
+        console.error(error);
+        mostrarMensaje('Error de conexión al crear usuario', true);
+    }
+});
+
+// Soporte de navegación por teclado para la creación de usuarios
+const inputsUsuario = [
+    document.getElementById('nuevoUsuarioNombre'),
+    document.getElementById('nuevoUsuarioEmail'),
+    document.getElementById('nuevoUsuarioPassword'),
+    guardarNuevoUsuario,
+    cancelarNuevoUsuario
+];
+
+inputsUsuario.forEach((input, index) => {
+    input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && input.tagName === 'INPUT') {
+            e.preventDefault();
+            guardarNuevoUsuario.click();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelarNuevoUsuario.click();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            inputsUsuario[index + 1]?.focus();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            inputsUsuario[index - 1]?.focus();
+        }
+    });
+});
