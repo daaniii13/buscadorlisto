@@ -1,54 +1,192 @@
-// Referencias principales del DOM
+// Utilidad principal para evitar que Symfony rompa el JS con redirecciones HTML
+async function fetchApi(url, opciones = {}) {
+    const headers = {
+        'Accept': 'application/json', // Fuerza a Symfony a devolver errores en JSON, no en HTML
+        ...(opciones.headers || {})
+    };
+    
+    if (opciones.body && !(opciones.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const config = {
+        ...opciones,
+        headers,
+        credentials: 'same-origin' // Envía la cookie de sesión automáticamente
+    };
+
+    const respuesta = await fetch(url, config);
+    
+    const contentType = respuesta.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+        throw new Error('El servidor devolvió HTML (Posible fallo de sesión o ruta).');
+    }
+
+    return respuesta;
+}
+
+// --- REFERENCIAS DOM ---
 const inputBusqueda = document.getElementById('busqueda');
 const resultados = document.getElementById('resultados');
 const estado = document.getElementById('estado');
 
-// Botones principales
+// Botones y paneles de cabecera
+const accionesAdmin = document.getElementById('accionesAdmin');
 const btnExportarPdf = document.getElementById('btnExportarPdf');
 const btnImportarCsv = document.getElementById('btnImportarCsv');
 const btnExportarCsv = document.getElementById('btnExportarCsv');
 const btnEliminarTodos = document.getElementById('btnEliminarTodos');
-
-// Input oculto CSV
 const inputCsv = document.getElementById('inputCsv');
 
 // Nuevo contacto
 const btnNuevo = document.getElementById('btnNuevoContacto');
 const panelNuevo = document.getElementById('panelNuevo');
-
 const guardarNuevo = document.getElementById('guardarNuevoContacto');
 const cancelarNuevo = document.getElementById('cancelarNuevoContacto');
-
-// Inputs formulario superior
 const nuevoNombre = document.getElementById('nuevoNombre');
 const nuevoDepartamento = document.getElementById('nuevoDepartamento');
 const nuevoExtension = document.getElementById('nuevoExtension');
 const nuevoEmail = document.getElementById('nuevoEmail');
 
-// Diccionarios para controlar hilos múltiples en paralelo
+// --- REFERENCIAS AUTH ---
+const btnPerfilToggle = document.getElementById('btnPerfilToggle');
+const panelPerfil = document.getElementById('panelPerfil');
+const loginForm = document.getElementById('loginForm');
+const loggedInPanel = document.getElementById('loggedInPanel');
+const loginEmail = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const btnLogin = document.getElementById('btnLogin');
+const loginError = document.getElementById('loginError');
+const usuarioNombre = document.getElementById('usuarioNombre');
+const rolBadge = document.getElementById('rolBadge');
+const btnLogout = document.getElementById('btnLogout');
+const btnNuevoUsuario = document.getElementById('btnNuevoUsuario');
+
+const panelNuevoUsuario = document.getElementById('panelNuevoUsuario');
+const guardarNuevoUsuario = document.getElementById('guardarNuevoUsuario');
+const cancelarNuevoUsuario = document.getElementById('cancelarNuevoUsuario');
+
+// --- ESTADO GLOBAL ---
 let contactosActuales = [];
 let idEditar = null;
 let estadosContactos = {};
 let segundosEliminar = {};
 let timersEliminar = {};    
 let timeoutMensaje = null;
+let usuarioActual = null; // Control de sesión
 
 const coloresDepartamento = [
     '#000000', '#1a1a1a', '#2b2b2b', '#3d3d3d', '#4f4f4f',
     '#616161', '#737373', '#858585', '#979797', '#a9a9a9',
     '#bcbcbc', '#d0d0d0', '#e5e5e5', '#f5f5f5'
 ];
-
-// Carga los colores guardados
 const coloresDepartamentos = JSON.parse(localStorage.getItem('coloresDepartamentos')) || {};
 
-// Mensajes de interfaz
+// --- SISTEMA DE AUTENTICACIÓN ---
+async function verificarSesion() {
+    try {
+        const res = await fetchApi('/api/auth/check');
+        const data = await res.json();
+        usuarioActual = data.logueado ? data.usuario : null;
+        actualizarInterfazAuth();
+    } catch (e) {
+        console.error(e);
+        usuarioActual = null;
+        actualizarInterfazAuth();
+    }
+}
+
+function actualizarInterfazAuth() {
+    if (usuarioActual) {
+        accionesAdmin.style.display = 'flex';
+        loginForm.classList.add('oculto');
+        loggedInPanel.classList.remove('oculto');
+        btnPerfilToggle.textContent = 'Mi Perfil';
+        usuarioNombre.textContent = usuarioActual.nombre || usuarioActual.email;
+        
+        const esAdmin = usuarioActual.roles.includes('ROLE_ADMIN');
+        rolBadge.textContent = esAdmin ? 'Admin' : 'Editor';
+        if (btnNuevoUsuario) btnNuevoUsuario.style.display = esAdmin ? 'block' : 'none';
+    } else {
+        accionesAdmin.style.display = 'none';
+        loginForm.classList.remove('oculto');
+        loggedInPanel.classList.add('oculto');
+        btnPerfilToggle.textContent = 'Iniciar Sesión';
+        panelNuevo.classList.add('oculto');
+        panelNuevoUsuario?.classList.add('oculto');
+    }
+    // Repintar para mostrar/ocultar los botones de editar y eliminar
+    renderizarContactos(contactosActuales);
+}
+
+btnPerfilToggle?.addEventListener('click', () => panelPerfil.classList.toggle('oculto'));
+
+btnLogin?.addEventListener('click', async () => {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value.trim();
+    if (!email || !password) {
+        loginError.textContent = 'Rellena todos los campos';
+        loginError.classList.remove('oculto');
+        return;
+    }
+
+    try {
+        // Symfony suele requerir "username" para el json_login genérico
+        const res = await fetchApi('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email: email, username: email, password: password })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.ok) {
+            loginError.classList.add('oculto');
+            usuarioActual = data.usuario;
+            actualizarInterfazAuth();
+            loginEmail.value = '';
+            loginPassword.value = '';
+            panelPerfil.classList.add('oculto');
+        } else {
+            loginError.textContent = data.error || 'Credenciales inválidas';
+            loginError.classList.remove('oculto');
+        }
+    } catch (e) {
+        loginError.textContent = 'Error de conexión';
+        loginError.classList.remove('oculto');
+    }
+});
+
+btnLogout?.addEventListener('click', async () => {
+    await fetchApi('/api/auth/logout');
+    usuarioActual = null;
+    actualizarInterfazAuth();
+    panelPerfil.classList.add('oculto');
+});
+
+// Navegación por teclado panel login
+const inputsLogin = [loginEmail, loginPassword, btnLogin];
+inputsLogin.forEach((input, index) => {
+    input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            btnLogin.click();
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            inputsLogin[index + 1]?.focus();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            inputsLogin[index - 1]?.focus();
+        } else if (e.key === 'Escape') {
+            panelPerfil.classList.add('oculto');
+            btnPerfilToggle.focus();
+        }
+    });
+});
+
+
+// --- LÓGICA PRINCIPAL DE CONTACTOS ---
 function mostrarMensaje(texto, esError = false) {
     if (!estado) return;
-
-    if (timeoutMensaje) {
-        clearTimeout(timeoutMensaje);
-    }
+    if (timeoutMensaje) clearTimeout(timeoutMensaje);
 
     estado.textContent = texto;
     estado.style.color = esError ? '#dc2626' : '#16a34a';
@@ -61,31 +199,23 @@ function mostrarMensaje(texto, esError = false) {
     }, 4000);
 }
 
-// Restricción extensión formulario superior
 nuevoExtension?.addEventListener('input', (e) => {
-    if (e.target.value.length > 4) {
-        e.target.value = e.target.value.slice(0, 4);
-    }
+    if (e.target.value.length > 4) e.target.value = e.target.value.slice(0, 4);
 });
 
-// Cargar contactos (Modificado para API Symfony)
 async function cargarContactos(q = '') {
     try {
-        const respuesta = await fetch('/api/contactos?q=' + encodeURIComponent(q));
+        const respuesta = await fetchApi('/api/contactos?q=' + encodeURIComponent(q));
         const datos = await respuesta.json();
         contactosActuales = Array.isArray(datos) ? datos : [];
         renderizarContactos(contactosActuales);
 
-        if (!timeoutMensaje) {
-            estado.textContent = contactosActuales.length + ' contactos';
-        }
+        if (!timeoutMensaje) estado.textContent = contactosActuales.length + ' contactos';
     } catch (error) {
-        console.error(error);
         mostrarMensaje('Error cargando contactos', true);
     }
 }
 
-// Vincula los controladores de navegación por flechas y teclado estructural a cada tarjeta
 function inyectarNavegacionTecladoTarjeta(tarjeta, contactoId) {
     tarjeta.setAttribute('tabindex', '0');
 
@@ -100,11 +230,8 @@ function inyectarNavegacionTecladoTarjeta(tarjeta, contactoId) {
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             const anterior = tarjetas[index - 1];
-            if (anterior) {
-                anterior.focus();
-            } else {
-                inputBusqueda?.focus();
-            }
+            if (anterior) anterior.focus();
+            else inputBusqueda?.focus();
         } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
             const botones = Array.from(tarjeta.querySelectorAll('button'));
             if (botones.length > 0) {
@@ -115,11 +242,8 @@ function inyectarNavegacionTecladoTarjeta(tarjeta, contactoId) {
                 if (idxBoton === -1) {
                     botones[0].focus();
                 } else {
-                    if (e.key === 'ArrowRight') {
-                        idxBoton = (idxBoton + 1) % botones.length;
-                    } else {
-                        idxBoton = (idxBoton - 1 + botones.length) % botones.length;
-                    }
+                    if (e.key === 'ArrowRight') idxBoton = (idxBoton + 1) % botones.length;
+                    else idxBoton = (idxBoton - 1 + botones.length) % botones.length;
                     botones[idxBoton].focus();
                 }
             }
@@ -133,7 +257,6 @@ function inyectarNavegacionTecladoTarjeta(tarjeta, contactoId) {
     });
 }
 
-// Pintar tarjetas reactivas basándose en el estado individual de cada contacto
 function renderizarContactos(contactos) {
     resultados.innerHTML = '';
     contactos.forEach(contacto => {
@@ -153,26 +276,13 @@ function renderizarContactos(contactos) {
 
         const estadoActual = estadosContactos[contacto.id] || 'normal';
 
-        // Edición inline
         if (contacto.id === idEditar) {
             tarjeta.innerHTML = `
                 <div class="tarjeta_grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
-                    <div class="campo">
-                        <label>Nombre</label>
-                        <input type="text" id="editNombre-${contacto.id}" value="${contacto.nombre}" maxlength="50" class="input-inline">
-                    </div>
-                    <div class="campo">
-                        <label>Departamento</label>
-                        <input type="text" id="editDepartamento-${contacto.id}" value="${contacto.departamento}" maxlength="50" class="input-inline">
-                    </div>
-                    <div class="campo">
-                        <label>Extensión</label>
-                        <input type="number" id="editExtension-${contacto.id}" value="${contacto.extension}" maxlength="15" class="input-inline">
-                    </div>
-                    <div class="campo">
-                        <label>Correo electrónico</label>
-                        <input type="email" id="editEmail-${contacto.id}" value="${contacto.email || ''}" maxlength="50" class="input-inline">
-                    </div>
+                    <div class="campo"><label>Nombre</label><input type="text" id="editNombre-${contacto.id}" value="${contacto.nombre}" maxlength="50" class="input-inline"></div>
+                    <div class="campo"><label>Departamento</label><input type="text" id="editDepartamento-${contacto.id}" value="${contacto.departamento}" maxlength="50" class="input-inline"></div>
+                    <div class="campo"><label>Extensión</label><input type="number" id="editExtension-${contacto.id}" value="${contacto.extension}" maxlength="15" class="input-inline"></div>
+                    <div class="campo"><label>Correo</label><input type="email" id="editEmail-${contacto.id}" value="${contacto.email || ''}" maxlength="50" class="input-inline"></div>
                 </div>
                 <div class="tarjeta_acciones" style="display: flex; gap: 10px; margin-top: 14px;">
                     <button type="button" class="boton boton--guardar-edicion btn-guardar-inline">Guardar cambios</button>
@@ -195,14 +305,12 @@ function renderizarContactos(contactos) {
                 document.getElementById(`tarjeta-${contacto.id}`)?.focus();
             });
 
-            // Mapeo completo de teclado responsivo estructural para el formulario inline
             const inputsInline = [
                 tarjeta.querySelector(`#editNombre-${contacto.id}`),
                 tarjeta.querySelector(`#editDepartamento-${contacto.id}`),
                 tarjeta.querySelector(`#editExtension-${contacto.id}`),
                 tarjeta.querySelector(`#editEmail-${contacto.id}`),
-                btnGuardar,
-                btnCancelarInline
+                btnGuardar, btnCancelarInline
             ];
 
             inputsInline.forEach((input, index) => {
@@ -225,7 +333,6 @@ function renderizarContactos(contactos) {
 
             setTimeout(() => inputsInline[0]?.focus(), 50);
 
-        // Cuentra atrás 
         } else if (estadoActual === 'eliminando') {
             tarjeta.classList.add('tarjeta--advertencia');
             const segs = segundosEliminar[contacto.id] ?? 5;
@@ -243,7 +350,6 @@ function renderizarContactos(contactos) {
             tarjeta.querySelector('.btn-deshacer-inline').addEventListener('click', () => cancelarEliminacionIndividual(contacto.id));
             inyectarNavegacionTecladoTarjeta(tarjeta, contacto.id);
 
-        // Pre-confirmación individual
         } else if (estadoActual === 'confirmar') {
             tarjeta.innerHTML = `
                 <div class="tarjeta_contenido">
@@ -265,8 +371,17 @@ function renderizarContactos(contactos) {
             });
             inyectarNavegacionTecladoTarjeta(tarjeta, contacto.id);
 
-        // Lectura normal
         } else {
+            // Lógica para que botones sólo salgan si se está logueado
+            let htmlBotones = '';
+            if (usuarioActual) {
+                htmlBotones = `
+                    <div class="tarjeta_acciones-contacto">
+                        <button type="button" class="boton boton--secundario btn-editar">Editar</button>
+                        <button type="button" class="boton boton--eliminar btn-eliminar">Eliminar</button>
+                    </div>`;
+            }
+
             tarjeta.innerHTML = `
                 <div class="tarjeta_contenido">
                     <h3>${contacto.nombre}</h3>
@@ -274,52 +389,47 @@ function renderizarContactos(contactos) {
                     <p><strong>Extensión:</strong> ${contacto.extension}</p>
                     <p><strong>Email:</strong> ${contacto.email || '-'}</p>
                 </div>
-                <div class="tarjeta_acciones-contacto">
-                    <button type="button" class="boton boton--secundario btn-editar">Editar</button>
-                    <button type="button" class="boton boton--eliminar btn-eliminar">Eliminar</button>
-                </div>
+                ${htmlBotones}
             `;
 
-            tarjeta.querySelector('.btn-editar').addEventListener('click', () => {
-                idEditar = contacto.id;
-                panelNuevo.classList.add('oculto');
-                renderizarContactos(contactosActuales);
-            });
-
-            tarjeta.querySelector('.btn-eliminar').addEventListener('click', () => {
-                estadosContactos[contacto.id] = 'confirmar';
-                renderizarContactos(contactosActuales);
-                document.getElementById(`tarjeta-${contacto.id}`)?.focus();
-            });
+            if (usuarioActual) {
+                tarjeta.querySelector('.btn-editar').addEventListener('click', () => {
+                    idEditar = contacto.id;
+                    panelNuevo.classList.add('oculto');
+                    renderizarContactos(contactosActuales);
+                });
+                tarjeta.querySelector('.btn-eliminar').addEventListener('click', () => {
+                    estadosContactos[contacto.id] = 'confirmar';
+                    renderizarContactos(contactosActuales);
+                    document.getElementById(`tarjeta-${contacto.id}`)?.focus();
+                });
+            }
             inyectarNavegacionTecladoTarjeta(tarjeta, contacto.id);
         }
         resultados.appendChild(tarjeta);
     });
 }
 
-// Guarda los datos directamente (Modificado para API Symfony PUT)
 async function guardarContactoInline(id, tarjeta) {
     const nombreVal = tarjeta.querySelector(`#editNombre-${id}`).value.trim();
     const deptoVal = tarjeta.querySelector(`#editDepartamento-${id}`).value.trim();
     const extVal = tarjeta.querySelector(`#editExtension-${id}`).value.trim();
     const emailVal = tarjeta.querySelector(`#editEmail-${id}`).value.trim();
 
-    if (nombreVal === '' || deptoVal === '' || extVal === '') {
+    if (!nombreVal || !deptoVal || !extVal) {
         mostrarMensaje('Nombre, departamento y extensión son obligatorios', true);
         return;
     }
-
-    if (emailVal !== '' && !emailVal.includes('@')) {
-        mostrarMensaje('Formato de correo inválido', true);
+    if (emailVal && !emailVal.includes('@')) {
+        mostrarMensaje('El correo electrónico debe ser válido', true);
         return;
     }
 
     const datos = { nombre: nombreVal, departamento: deptoVal, extension: extVal, email: emailVal };
 
     try {
-        const respuesta = await fetch(`/api/contactos/${id}`, {
+        const respuesta = await fetchApi(`/api/contactos/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
         const resultado = await respuesta.json();
@@ -333,9 +443,7 @@ async function guardarContactoInline(id, tarjeta) {
         idEditar = null;
         await cargarContactos(inputBusqueda.value);
         document.getElementById(`tarjeta-${id}`)?.focus();
-
     } catch (error) {
-        console.error(error);
         mostrarMensaje('Error de conexión', true);
     }
 }
@@ -350,7 +458,6 @@ function iniciarContadorEliminar(id) {
 
     const intervaloId = setInterval(async () => {
         segundosEliminar[id]--;
-
         if (segundosEliminar[id] <= 0) {
             clearInterval(intervaloId);
             delete timersEliminar[id];
@@ -380,10 +487,9 @@ function cancelarEliminacionIndividual(id) {
     document.getElementById(`tarjeta-${id}`)?.focus();
 }
 
-// Eliminar individual real (Modificado para API Symfony DELETE)
 async function ejecutarEliminacionReal(id) {
     try {
-        const respuesta = await fetch(`/api/contactos/${id}`, { method: 'DELETE' });
+        const respuesta = await fetchApi(`/api/contactos/${id}`, { method: 'DELETE' });
         const resultado = await respuesta.json();
 
         if (!respuesta.ok || !resultado.ok) {
@@ -393,13 +499,11 @@ async function ejecutarEliminacionReal(id) {
         }
         cargarContactos(inputBusqueda.value);
     } catch (error) {
-        console.error(error);
         mostrarMensaje('Error de conexión al eliminar', true);
         cargarContactos(inputBusqueda.value);
     }
 }
 
-// Eliminar todos (Modificado API y con el 3er aviso incorporado)
 async function eliminarTodosContactos() {
     if (!contactosActuales.length) {
         mostrarMensaje('No hay contactos para eliminar', true);
@@ -416,34 +520,23 @@ async function eliminarTodosContactos() {
 
     setTimeout(() => {
         window.removeEventListener('blur', marcarBlur);
-
         const continuarAlContador = () => {
             const segundoSeguro = confirm('¿Estás seguro de completar esta acción?');
-            if (!segundoSeguro) {
-                cargarContactos(inputBusqueda.value);
-                return;
-            }
+            if (!segundoSeguro) { cargarContactos(inputBusqueda.value); return; }
 
             const tercerSeguro = confirm('ADVERTENCIA FINAL: Acción irreversible.\n¿Borrar TODOS los contactos definitivamente?');
-            if (!tercerSeguro) {
-                cargarContactos(inputBusqueda.value);
-                return;
-            }
+            if (!tercerSeguro) { cargarContactos(inputBusqueda.value); return; }
 
             let segundos = 5;
             let cancelado = false;
 
-            if (timeoutMensaje) {
-                clearTimeout(timeoutMensaje);
-                timeoutMensaje = null;
-            }
+            if (timeoutMensaje) { clearTimeout(timeoutMensaje); timeoutMensaje = null; }
 
             estado.innerHTML =
                 `<div style="display:flex; gap:12px; align-items:center; justify-content:center;">
                     <span style="font-weight:700; color:#dc2626;">Eliminación en: <span id="contadorMasivo">${segundos}s</span></span>
                     <button type="button" id="btnCancelarMasivo" class="boton boton--deshacer" autofocus>Cancelar</button>
                 </div>`;
-
             estado.style.color = '';
             estado.style.fontWeight = '';
 
@@ -460,18 +553,16 @@ async function eliminarTodosContactos() {
                 } else {
                     clearInterval(intervalo);
                     try {
-                        const respuesta = await fetch('/api/contactos/batch/todos', { method: 'DELETE' });
+                        const respuesta = await fetchApi('/api/contactos/batch/todos', { method: 'DELETE' });
                         const resultado = await respuesta.json();
 
                         if (!respuesta.ok || !resultado.ok) {
                             mostrarMensaje(resultado.error || 'Error eliminando', true);
                             return;
                         }
-
                         await cargarContactos(inputBusqueda.value);
-                        mostrarMensaje(`Los ${resultado.cantidad || 0} contactos se han eliminado correctamente`);
+                        mostrarMensaje(`Se han eliminado ${resultado.cantidad || 0} contactos correctamente`);
                     } catch (error) {
-                        console.error(error);
                         mostrarMensaje('Error de conexión al eliminar los contactos', true);
                         cargarContactos(inputBusqueda.value);
                     }
@@ -505,30 +596,26 @@ function limpiarFormulario() {
     nuevoEmail.value = '';
 }
 
-// Guardar contacto nuevo (Modificado para API Symfony POST y validaciones)
 async function guardarContacto() {
+    const nombreVal = nuevoNombre.value.trim();
+    const deptoVal = nuevoDepartamento.value.trim();
+    const extVal = nuevoExtension.value.trim();
     const emailVal = nuevoEmail.value.trim();
-    if (emailVal !== '' && !emailVal.includes('@')) {
-        mostrarMensaje('Formato de correo inválido', true);
+
+    if (!nombreVal || !deptoVal || !extVal) {
+        mostrarMensaje('Nombre, departamento y extensión son obligatorios', true);
+        return;
+    }
+    if (emailVal && !emailVal.includes('@')) {
+        mostrarMensaje('El correo electrónico debe ser válido', true);
         return;
     }
 
-    if (!nuevoNombre.value.trim() || !nuevoDepartamento.value.trim() || !nuevoExtension.value.trim()) {
-         mostrarMensaje('Faltan campos obligatorios', true);
-         return;
-    }
-
-    const datos = { 
-        nombre: nuevoNombre.value.trim(), 
-        departamento: nuevoDepartamento.value.trim(), 
-        extension: nuevoExtension.value.trim(), 
-        email: emailVal 
-    };
+    const datos = { nombre: nombreVal, departamento: deptoVal, extension: extVal, email: emailVal };
 
     try {
-        const respuesta = await fetch('/api/contactos', {
+        const respuesta = await fetchApi('/api/contactos', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
         const resultado = await respuesta.json();
@@ -544,15 +631,12 @@ async function guardarContacto() {
         cargarContactos(inputBusqueda.value);
         btnNuevo?.focus();
     } catch (error) {
-        console.error(error);
         mostrarMensaje('Error de conexión', true);
     }
 }
 
-// Buscador e inyección de salto hacia abajo por teclado
-inputBusqueda?.addEventListener('input', () => {
-    cargarContactos(inputBusqueda.value);
-});
+// Eventos del buscador superior
+inputBusqueda?.addEventListener('input', () => cargarContactos(inputBusqueda.value));
 inputBusqueda?.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -564,18 +648,16 @@ inputBusqueda?.addEventListener('keydown', (e) => {
     }
 });
 
-// Accesibilidad cabecera
+// Eventos de cabecera admin
 const botonesCabecera = [btnNuevo, btnExportarPdf, btnImportarCsv, btnExportarCsv, btnEliminarTodos];
 botonesCabecera.forEach((btn, index) => {
     btn?.addEventListener('keydown', (e) => {
         if (e.key === 'ArrowRight') {
             e.preventDefault();
-            const siguiente = botonesCabecera[(index + 1) % botonesCabecera.length];
-            siguiente?.focus();
+            botonesCabecera[(index + 1) % botonesCabecera.length]?.focus();
         } else if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            const anterior = botonesCabecera[(index - 1 + botonesCabecera.length) % botonesCabecera.length];
-            anterior?.focus();
+            botonesCabecera[(index - 1 + botonesCabecera.length) % botonesCabecera.length]?.focus();
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             inputBusqueda?.focus();
@@ -583,21 +665,18 @@ botonesCabecera.forEach((btn, index) => {
     });
 });
 
-// Mostrar formulario superior
 btnNuevo?.addEventListener('click', () => {
     limpiarFormulario();
     idEditar = null; 
     renderizarContactos(contactosActuales);
     guardarNuevo.textContent = 'Guardar contacto';
     panelNuevo.classList.toggle('oculto');
-
     if (!panelNuevo.classList.contains('oculto')) {
         panelNuevo.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(() => nuevoNombre.focus(), 300);
     }
 });
 
-// Cancelar formulario superior
 cancelarNuevo?.addEventListener('click', () => {
     panelNuevo.classList.add('oculto');
     limpiarFormulario();
@@ -607,7 +686,6 @@ cancelarNuevo?.addEventListener('click', () => {
 
 guardarNuevo?.addEventListener('click', guardarContacto);
 
-// Navegación por teclado estructural para el formulario superior de creación
 const inputsTop = [nuevoNombre, nuevoDepartamento, nuevoExtension, nuevoEmail, guardarNuevo, cancelarNuevo];
 inputsTop.forEach((input, index) => {
     input?.addEventListener('keydown', (e) => {
@@ -627,58 +705,7 @@ inputsTop.forEach((input, index) => {
     });
 });
 
-// Exportar CSV
-function exportarCSV(esRespaldo = false) {
-    if (!contactosActuales.length) {
-        if (!esRespaldo) mostrarMensaje('No hay contactos para exportar.', true);
-        return;
-    }
-
-    const escaparCSV = (valor) => {
-        valor = valor ?? '';
-        return `"${String(valor).replace(/"/g, '""').trim()}"`;
-    };
-
-    let csv = 'nombre,departamento,extension,email\n';
-    contactosActuales.forEach(c => {
-        csv += [escaparCSV(c.nombre), escaparCSV(c.departamento), escaparCSV(c.extension), escaparCSV(c.email)].join(',') + '\n';
-    });
-
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const enlace = document.createElement('a');
-    enlace.href = URL.createObjectURL(blob);
-    enlace.download = 'contactos.csv';
-    document.body.appendChild(enlace);
-    enlace.click();
-    document.body.removeChild(enlace);
-
-    if (!esRespaldo) mostrarMensaje('CSV exportado correctamente.', false);
-}
-
-// Importar CSV (Modificado para API Symfony POST)
-async function importarCSV(archivo) {
-    const formData = new FormData();
-    formData.append('archivo_csv', archivo);
-    try {
-        const respuesta = await fetch('/api/contactos/importar', { method: 'POST', body: formData });
-        const datos = await respuesta.json();
-        mostrarMensaje(datos.mensaje || datos.error, !respuesta.ok);
-        cargarContactos(inputBusqueda.value);
-    } catch (error) {
-        console.error(error);
-        mostrarMensaje('Error importando CSV', true);
-    }
-}
-
-btnExportarCsv?.addEventListener('click', exportarCSV);
-btnImportarCsv?.addEventListener('click', () => inputCsv.click());
-btnEliminarTodos?.addEventListener('click', eliminarTodosContactos);
-inputCsv?.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) importarCSV(e.target.files[0]);
-    e.target.value = '';
-});
-
-// Exportar PDF
+// Exportación PDF (Solo asegúrate de haber añadido el CDN en el HTML)
 btnExportarPdf?.addEventListener('click', () => {
     if (!window.jspdf) { mostrarMensaje('jsPDF no cargado', true); return; }
     const { jsPDF } = window.jspdf;
@@ -690,16 +717,50 @@ btnExportarPdf?.addEventListener('click', () => {
     doc.save('contactos.pdf');
 });
 
-// Inicio
-cargarContactos();
+// CSV Export / Import
+function exportarCSV(esRespaldo = false) {
+    if (!contactosActuales.length) {
+        if (!esRespaldo) mostrarMensaje('No hay contactos para exportar.', true);
+        return;
+    }
+    const escaparCSV = (valor) => `"${String(valor ?? '').replace(/"/g, '""').trim()}"`;
+    let csv = 'nombre,departamento,extension,email\n';
+    contactosActuales.forEach(c => {
+        csv += [escaparCSV(c.nombre), escaparCSV(c.departamento), escaparCSV(c.extension), escaparCSV(c.email)].join(',') + '\n';
+    });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = 'contactos.csv';
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
 
+    if (!esRespaldo) mostrarMensaje('CSV exportado correctamente.', false);
+}
 
-// --- NUEVA LÓGICA DE USUARIOS ---
-const panelNuevoUsuario = document.getElementById('panelNuevoUsuario');
-const btnNuevoUsuario = document.getElementById('btnNuevoUsuario');
-const guardarNuevoUsuario = document.getElementById('guardarNuevoUsuario');
-const cancelarNuevoUsuario = document.getElementById('cancelarNuevoUsuario');
+async function importarCSV(archivo) {
+    const formData = new FormData();
+    formData.append('archivo_csv', archivo);
+    try {
+        const respuesta = await fetchApi('/api/contactos/importar', { method: 'POST', body: formData });
+        const datos = await respuesta.json();
+        mostrarMensaje(datos.mensaje || datos.error, !respuesta.ok || !datos.ok);
+        cargarContactos(inputBusqueda.value);
+    } catch (error) {
+        mostrarMensaje('Error importando CSV', true);
+    }
+}
 
+btnExportarCsv?.addEventListener('click', () => exportarCSV(false));
+btnImportarCsv?.addEventListener('click', () => inputCsv.click());
+btnEliminarTodos?.addEventListener('click', eliminarTodosContactos);
+inputCsv?.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) importarCSV(e.target.files[0]);
+    e.target.value = '';
+});
+
+// --- LÓGICA CREACIÓN NUEVO USUARIO (SÓLO ADMIN) ---
 btnNuevoUsuario?.addEventListener('click', () => {
     panelNuevoUsuario.classList.remove('oculto');
     document.getElementById('nuevoUsuarioNombre').value = '';
@@ -708,47 +769,40 @@ btnNuevoUsuario?.addEventListener('click', () => {
     document.getElementById('nuevoUsuarioNombre').focus();
 });
 
-cancelarNuevoUsuario?.addEventListener('click', () => {
-    panelNuevoUsuario.classList.add('oculto');
-});
+cancelarNuevoUsuario?.addEventListener('click', () => panelNuevoUsuario.classList.add('oculto'));
 
 guardarNuevoUsuario?.addEventListener('click', async () => {
-    const nombre = document.getElementById('nuevoUsuarioNombre').value.trim();
     const email = document.getElementById('nuevoUsuarioEmail').value.trim();
     const password = document.getElementById('nuevoUsuarioPassword').value.trim();
 
-    if (!email.includes('@') || !password || !nombre) {
-        mostrarMensaje('Rellena todos los campos correctamente', true);
+    if (!email.includes('@') || !password) {
+        mostrarMensaje('Rellena nombre, correo válido y contraseña', true);
         return;
     }
 
     try {
-        const res = await fetch('/api/users', {
+        const res = await fetchApi('/api/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password, roles: ['ROLE_ELEVATED'] })
         });
         const data = await res.json();
 
-        if (!res.ok || !data.ok) {
-            mostrarMensaje(data.error || 'Error al crear usuario', true);
-        } else {
+        if (res.ok && data.ok) {
             mostrarMensaje('Usuario creado exitosamente');
             panelNuevoUsuario.classList.add('oculto');
+        } else {
+            mostrarMensaje(data.error || 'Error al crear usuario', true);
         }
-    } catch (error) {
-        console.error(error);
+    } catch (e) {
         mostrarMensaje('Error de conexión al crear usuario', true);
     }
 });
 
-// Soporte de navegación por teclado para la creación de usuarios
 const inputsUsuario = [
     document.getElementById('nuevoUsuarioNombre'),
     document.getElementById('nuevoUsuarioEmail'),
     document.getElementById('nuevoUsuarioPassword'),
-    guardarNuevoUsuario,
-    cancelarNuevoUsuario
+    guardarNuevoUsuario, cancelarNuevoUsuario
 ];
 
 inputsUsuario.forEach((input, index) => {
@@ -768,3 +822,7 @@ inputsUsuario.forEach((input, index) => {
         }
     });
 });
+
+// INICIO DE LA APLICACIÓN
+verificarSesion();
+cargarContactos();
