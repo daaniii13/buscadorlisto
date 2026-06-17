@@ -14,7 +14,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class ContactoController extends AbstractController
 {
     /**
-     * GET / - Redirije a index.html
+     * GET / - Redirige a index.html
      */
     #[Route('/', name: 'root', methods: ['GET'])]
     public function root(): RedirectResponse
@@ -172,7 +172,7 @@ class ContactoController extends AbstractController
      * DELETE /api/contactos/batch/todos - Elimina todos los contactos
      */
     #[Route('/api/contactos/batch/todos', name: 'delete_all', methods: ['DELETE'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_ELEVATED')] // <-- Cambiado de ROLE_ADMIN a ROLE_ELEVATED
     public function eliminarTodos(ContactoService $service): JsonResponse
     {
         try {
@@ -196,7 +196,7 @@ class ContactoController extends AbstractController
      * Form-data: archivo_csv (file)
      */
     #[Route('/api/contactos/importar', name: 'import', methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('ROLE_ELEVATED')] // <-- Cambiado de ROLE_ADMIN a ROLE_ELEVATED
     public function importar(Request $request, CsvImportService $service): JsonResponse
     {
         try {

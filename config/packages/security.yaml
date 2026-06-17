@@ -1,4 +1,7 @@
 security:
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_ELEVATED]
+
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
@@ -24,5 +27,5 @@ security:
         - { path: ^/api/auth/, roles: PUBLIC_ACCESS }
         - { path: ^/api/users, roles: ROLE_ADMIN }
         - { path: ^/api/contactos, methods: [POST, PUT, DELETE], roles: [ROLE_ADMIN, ROLE_ELEVATED] }
-        - { path: ^/api/contactos/importar, methods: [POST], roles: ROLE_ADMIN }
-        - { path: ^/api/contactos/batch/todos, methods: [DELETE], roles: ROLE_ADMIN }
+        - { path: ^/api/contactos/importar, methods: [POST], roles: [ROLE_ADMIN, ROLE_ELEVATED] }
+        - { path: ^/api/contactos/batch/todos, methods: [DELETE], roles: [ROLE_ADMIN, ROLE_ELEVATED] }

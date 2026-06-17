@@ -45,14 +45,14 @@ class ContactoService
             $this->validarContacto($contacto);
             $this->verificarDuplicado($contacto);
 
-            // Usamos el método save del repositorio que corregimos
-            $this->repository->save($contacto, true);
+            // Se utiliza persist y flush del EntityManager para insertar en la BD
+            $this->entityManager->persist($contacto);
+            $this->entityManager->flush();
 
             return $contacto;
         } catch (\InvalidArgumentException $e) {
             throw $e;
         } catch (\Throwable $e) {
-            // Capturamos cualquier Type Error de PHP para que Symfony envíe el JSON correcto al JS
             throw new \Exception('Fallo interno PHP: ' . $e->getMessage());
         }
     }
@@ -72,8 +72,8 @@ class ContactoService
             $this->validarContacto($contacto);
             $this->verificarDuplicado($contacto, $id);
 
-            // Usamos el método save del repositorio
-            $this->repository->save($contacto, true);
+            // Al estar la entidad ya monitorizada por Doctrine, solo necesitamos hacer flush
+            $this->entityManager->flush();
 
             return $contacto;
         } catch (\InvalidArgumentException $e) {
@@ -94,8 +94,9 @@ class ContactoService
                 throw new \InvalidArgumentException('Contacto no encontrado');
             }
 
-            // Usamos el método remove del repositorio
-            $this->repository->remove($contacto, true);
+            // Se utiliza remove y flush del EntityManager para eliminar de la BD
+            $this->entityManager->remove($contacto);
+            $this->entityManager->flush();
         } catch (\InvalidArgumentException $e) {
             throw $e;
         } catch (\Throwable $e) {
