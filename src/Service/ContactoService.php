@@ -6,7 +6,6 @@ use App\Entity\Contacto;
 use App\Repository\ContactoRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\Validator\ConstraintViolation;
 
 class ContactoService
 {
@@ -37,57 +36,71 @@ class ContactoService
 
     /**
      * Crea un nuevo contacto con validación.
-     *
-     * @throws \InvalidArgumentException Si los datos no son válidos
      */
     public function crear(array $datos): Contacto
     {
-        $contacto = new Contacto();
-        $this->aplicarDatos($contacto, $datos);
-        $this->validarContacto($contacto);
-        $this->verificarDuplicado($contacto);
+        try {
+            $contacto = new Contacto();
+            $this->aplicarDatos($contacto, $datos);
+            $this->validarContacto($contacto);
+            $this->verificarDuplicado($contacto);
 
-        $this->entityManager->persist($contacto);
-        $this->entityManager->flush();
+            // Usamos el método save del repositorio que corregimos
+            $this->repository->save($contacto, true);
 
-        return $contacto;
+            return $contacto;
+        } catch (\InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            // Capturamos cualquier Type Error de PHP para que Symfony envíe el JSON correcto al JS
+            throw new \Exception('Fallo interno PHP: ' . $e->getMessage());
+        }
     }
 
     /**
      * Actualiza un contacto existente con validación.
-     *
-     * @throws \InvalidArgumentException Si los datos no son válidos o no existe
      */
     public function actualizar(int $id, array $datos): Contacto
     {
-        $contacto = $this->repository->find($id);
-        if (!$contacto) {
-            throw new \InvalidArgumentException('Contacto no encontrado');
+        try {
+            $contacto = $this->repository->find($id);
+            if (!$contacto) {
+                throw new \InvalidArgumentException('Contacto no encontrado');
+            }
+
+            $this->aplicarDatos($contacto, $datos);
+            $this->validarContacto($contacto);
+            $this->verificarDuplicado($contacto, $id);
+
+            // Usamos el método save del repositorio
+            $this->repository->save($contacto, true);
+
+            return $contacto;
+        } catch (\InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new \Exception('Fallo interno PHP: ' . $e->getMessage());
         }
-
-        $this->aplicarDatos($contacto, $datos);
-        $this->validarContacto($contacto);
-        $this->verificarDuplicado($contacto, $id);
-
-        $this->entityManager->flush();
-
-        return $contacto;
     }
 
     /**
      * Elimina un contacto por ID.
-     *
-     * @throws \InvalidArgumentException Si el contacto no existe
      */
     public function eliminar(int $id): void
     {
-        $contacto = $this->repository->find($id);
-        if (!$contacto) {
-            throw new \InvalidArgumentException('Contacto no encontrado');
-        }
+        try {
+            $contacto = $this->repository->find($id);
+            if (!$contacto) {
+                throw new \InvalidArgumentException('Contacto no encontrado');
+            }
 
-        $this->entityManager->remove($contacto);
-        $this->entityManager->flush();
+            // Usamos el método remove del repositorio
+            $this->repository->remove($contacto, true);
+        } catch (\InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new \Exception('Fallo interno PHP: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -95,11 +108,9 @@ class ContactoService
      */
     public function eliminarTodos(): int
     {
-        $count = $this->entityManager->createQuery(
+        return $this->entityManager->createQuery(
             'DELETE FROM App\Entity\Contacto c'
         )->execute();
-
-        return $count;
     }
 
     /**
@@ -108,25 +119,23 @@ class ContactoService
     private function aplicarDatos(Contacto $contacto, array $datos): void
     {
         if (isset($datos['nombre'])) {
-            $contacto->setNombre(trim($datos['nombre']));
+            $contacto->setNombre(trim((string) $datos['nombre']));
         }
         if (isset($datos['departamento'])) {
-            $contacto->setDepartamento(trim($datos['departamento']));
+            $contacto->setDepartamento(trim((string) $datos['departamento']));
         }
         if (isset($datos['email'])) {
-            $email = isset($datos['email']) ? trim($datos['email']) : '';
+            $email = trim((string) $datos['email']);
             $contacto->setEmail($email !== '' ? $email : null);
         }
         if (isset($datos['extension'])) {
-            $extension = isset($datos['extension']) ? trim($datos['extension']) : '';
+            $extension = trim((string) $datos['extension']);
             $contacto->setExtension($extension !== '' ? $extension : null);
         }
     }
 
     /**
      * Valida un contacto usando Symfony Validator.
-     *
-     * @throws \InvalidArgumentException Si hay errores de validación
      */
     private function validarContacto(Contacto $contacto): void
     {
@@ -143,8 +152,6 @@ class ContactoService
 
     /**
      * Verifica si existe un contacto duplicado.
-     *
-     * @throws \InvalidArgumentException Si existe duplicado
      */
     private function verificarDuplicado(Contacto $contacto, ?int $excludeId = null): void
     {

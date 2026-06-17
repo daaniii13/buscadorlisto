@@ -17,6 +17,28 @@ class ContactoRepository extends ServiceEntityRepository
     }
 
     /**
+     * Guarda un contacto en la base de datos
+     */
+    public function save(Contacto $entity, bool $flush = false): void
+    {
+        $this->getEntityManager()->persist($entity);
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+    }
+
+    /**
+     * Elimina un contacto de la base de datos
+     */
+    public function remove(Contacto $entity, bool $flush = false): void
+    {
+        $this->getEntityManager()->remove($entity);
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+    }
+
+    /**
      * Busca contactos por una palabra clave en múltiples campos.
      */
     public function findByWord(string $word): array
