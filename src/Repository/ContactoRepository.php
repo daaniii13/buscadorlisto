@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Repository;
-
 use App\Entity\Contacto;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -9,18 +7,15 @@ use Doctrine\Persistence\ManagerRegistry;
 /**
  * @extends ServiceEntityRepository<Contacto>
  */
-class ContactoRepository extends ServiceEntityRepository
-{
-    public function __construct(ManagerRegistry $registry)
-    {
+class ContactoRepository extends ServiceEntityRepository {
+    public function __construct(ManagerRegistry $registry) {
         parent::__construct($registry, Contacto::class);
     }
 
     /**
      * Guarda un contacto en la base de datos
      */
-    public function save(Contacto $entity, bool $flush = false): void
-    {
+    public function save(Contacto $entity, bool $flush = false): void {
         $this->getEntityManager()->persist($entity);
         if ($flush) {
             $this->getEntityManager()->flush();
@@ -30,8 +25,7 @@ class ContactoRepository extends ServiceEntityRepository
     /**
      * Elimina un contacto de la base de datos
      */
-    public function remove(Contacto $entity, bool $flush = false): void
-    {
+    public function remove(Contacto $entity, bool $flush = false): void {
         $this->getEntityManager()->remove($entity);
         if ($flush) {
             $this->getEntityManager()->flush();
@@ -39,10 +33,9 @@ class ContactoRepository extends ServiceEntityRepository
     }
 
     /**
-     * Busca contactos por una palabra clave en múltiples campos.
+     * Busca contactos por una palabra clave en múltiples campos
      */
-    public function findByWord(string $word): array
-    {
+    public function findByWord(string $word): array {
         return $this->createQueryBuilder('c')
             ->where('c.nombre LIKE :word')
             ->orWhere('c.departamento LIKE :word')
@@ -55,11 +48,10 @@ class ContactoRepository extends ServiceEntityRepository
     }
 
     /**
-     * Busca contactos que coincidan con múltiples palabras (AND logic).
-     * Cada palabra debe encontrarse en al menos uno de los campos.
+     * Busca contactos que coincidan con múltiples palabras (lógica AND)
+     * Cada palabra debe encontrarse en al menos uno de los campos
      */
-    public function findByMultipleWords(array $words): array
-    {
+    public function findByMultipleWords(array $words): array {
         $qb = $this->createQueryBuilder('c');
 
         foreach ($words as $index => $word) {
@@ -81,10 +73,9 @@ class ContactoRepository extends ServiceEntityRepository
     }
 
     /**
-     * Busca un contacto duplicado por nombre, departamento y extensión.
+     * Busca un contacto duplicado por nombre, departamento y extensión
      */
-    public function findDuplicate(string $nombre, string $departamento, string $extension, ?int $excludeId = null): ?Contacto
-    {
+    public function findDuplicate(string $nombre, string $departamento, string $extension, ?int $excludeId = null): ?Contacto {
         $qb = $this->createQueryBuilder('c')
             ->where('c.nombre = :nombre')
             ->andWhere('c.departamento = :departamento')
@@ -102,10 +93,9 @@ class ContactoRepository extends ServiceEntityRepository
     }
 
     /**
-     * Obtiene todos los contactos ordenados por departamento.
+     * Obtiene todos los contactos ordenados por departamento
      */
-    public function findAllOrderedByDepartamento(): array
-    {
+    public function findAllOrderedByDepartamento(): array {
         return $this->createQueryBuilder('c')
             ->orderBy('c.departamento', 'ASC')
             ->getQuery()

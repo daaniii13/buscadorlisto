@@ -1,14 +1,11 @@
 <?php
-
 namespace App\Service;
-
 use App\Entity\Contacto;
 use App\Repository\ContactoRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class ContactoService
-{
+class ContactoService {
     public function __construct(
         private readonly ContactoRepository $repository,
         private readonly EntityManagerInterface $entityManager,
@@ -16,10 +13,9 @@ class ContactoService
     ) {}
 
     /**
-     * Busca contactos por una cadena de búsqueda (soporta múltiples palabras).
+     * Busca contactos por una cadena de búsqueda (soporta múltiples palabras)
      */
-    public function buscar(string $q): array
-    {
+    public function buscar(string $q): array {
         $q = trim($q);
 
         if ($q === '') {
@@ -35,17 +31,15 @@ class ContactoService
     }
 
     /**
-     * Crea un nuevo contacto con validación.
+     * Crea un nuevo contacto con validación
      */
-    public function crear(array $datos): Contacto
-    {
+    public function crear(array $datos): Contacto {
         try {
             $contacto = new Contacto();
             $this->aplicarDatos($contacto, $datos);
             $this->validarContacto($contacto);
             $this->verificarDuplicado($contacto);
 
-            // Se utiliza persist y flush del EntityManager para insertar en la BD
             $this->entityManager->persist($contacto);
             $this->entityManager->flush();
 
@@ -58,10 +52,9 @@ class ContactoService
     }
 
     /**
-     * Actualiza un contacto existente con validación.
+     * Actualiza un contacto existente con validación
      */
-    public function actualizar(int $id, array $datos): Contacto
-    {
+    public function actualizar(int $id, array $datos): Contacto {
         try {
             $contacto = $this->repository->find($id);
             if (!$contacto) {
@@ -71,8 +64,6 @@ class ContactoService
             $this->aplicarDatos($contacto, $datos);
             $this->validarContacto($contacto);
             $this->verificarDuplicado($contacto, $id);
-
-            // Al estar la entidad ya monitorizada por Doctrine, solo necesitamos hacer flush
             $this->entityManager->flush();
 
             return $contacto;
@@ -84,17 +75,15 @@ class ContactoService
     }
 
     /**
-     * Elimina un contacto por ID.
+     * Elimina un contacto por ID
      */
-    public function eliminar(int $id): void
-    {
+    public function eliminar(int $id): void {
         try {
             $contacto = $this->repository->find($id);
             if (!$contacto) {
                 throw new \InvalidArgumentException('Contacto no encontrado');
             }
 
-            // Se utiliza remove y flush del EntityManager para eliminar de la BD
             $this->entityManager->remove($contacto);
             $this->entityManager->flush();
         } catch (\InvalidArgumentException $e) {
@@ -105,20 +94,18 @@ class ContactoService
     }
 
     /**
-     * Elimina todos los contactos.
+     * Elimina todos los contactos
      */
-    public function eliminarTodos(): int
-    {
+    public function eliminarTodos(): int {
         return $this->entityManager->createQuery(
             'DELETE FROM App\Entity\Contacto c'
         )->execute();
     }
 
     /**
-     * Aplica datos del array al contacto.
+     * Aplica datos del array al contacto
      */
-    private function aplicarDatos(Contacto $contacto, array $datos): void
-    {
+    private function aplicarDatos(Contacto $contacto, array $datos): void {
         if (isset($datos['nombre'])) {
             $contacto->setNombre(trim((string) $datos['nombre']));
         }
@@ -136,10 +123,9 @@ class ContactoService
     }
 
     /**
-     * Valida un contacto usando Symfony Validator.
+     * Valida un contacto usando Symfony Validator
      */
-    private function validarContacto(Contacto $contacto): void
-    {
+    private function validarContacto(Contacto $contacto): void {
         $errors = $this->validator->validate($contacto);
 
         if (count($errors) > 0) {
@@ -154,8 +140,7 @@ class ContactoService
     /**
      * Verifica si existe un contacto duplicado.
      */
-    private function verificarDuplicado(Contacto $contacto, ?int $excludeId = null): void
-    {
+    private function verificarDuplicado(Contacto $contacto, ?int $excludeId = null): void {
         $duplicado = $this->repository->findDuplicate(
             $contacto->getNombre(),
             $contacto->getDepartamento(),
@@ -169,7 +154,7 @@ class ContactoService
     }
 
     /**
-     * Obtiene las estadísticas de errores de validación formateadas.
+     * Obtiene las estadísticas de errores de validación formateadas
      */
     public static function formatValidationErrors(\InvalidArgumentException $e): array
     {

@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Controller;
-
 use App\Entity\User;
 use App\Service\UserService;
 use Doctrine\Persistence\ManagerRegistry;
@@ -15,8 +13,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
-class AuthController extends AbstractController
-{
+class AuthController extends AbstractController {
     /**
      * POST /api/auth/login - Autentica un usuario
      */
@@ -31,10 +28,10 @@ class AuthController extends AbstractController
         $email = $datos['email'] ?? null;
         $password = $datos['password'] ?? null;
 
-        // Buscamos al usuario en la BD
+        // Busca al usuario en la base de datos
         $user = $doctrine->getRepository(User::class)->findOneBy(['email' => $email]);
 
-        // Validamos si existe y si la contraseña es correcta
+        // Valida si existe y si la contraseña es correcta
         if (!$user || !$hasher->isPasswordValid($user, $password)) {
             return $this->json([
                 'ok' => false,
@@ -42,7 +39,7 @@ class AuthController extends AbstractController
             ], Response::HTTP_UNAUTHORIZED);
         }
 
-        // Creamos la sesión manualmente para que $this->getUser() funcione en otros métodos
+        // Crea la sesión manualmente para que $this->getUser() funcione en otros métodos
         $token = new UsernamePasswordToken($user, 'main', $user->getRoles());
         $tokenStorage->setToken($token);
         $request->getSession()->set('_security_main', serialize($token));
@@ -62,8 +59,7 @@ class AuthController extends AbstractController
      * GET /api/auth/check - Verifica si hay usuario logueado
      */
     #[Route('/api/auth/check', name: 'api_auth_check', methods: ['GET'])]
-    public function check(): JsonResponse
-    {
+    public function check(): JsonResponse {
         $user = $this->getUser();
 
         if (!$user) {
@@ -88,8 +84,7 @@ class AuthController extends AbstractController
      * GET /api/auth/logout - Destruye la sesión
      */
     #[Route('/api/auth/logout', name: 'api_auth_logout', methods: ['GET'])]
-    public function logout(Request $request): JsonResponse
-    {
+    public function logout(Request $request): JsonResponse {
         $request->getSession()->invalidate();
         return $this->json([
             'ok' => true,
@@ -98,12 +93,11 @@ class AuthController extends AbstractController
     }
 
     /**
-     * GET /api/users - Lista todos los usuarios (solo ADMIN)
+     * GET /api/users - Lista todos los usuarios
      */
     #[Route('/api/users', name: 'api_users_list', methods: ['GET'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function listarUsuarios(UserService $userService): JsonResponse
-    {
+    public function listarUsuarios(UserService $userService): JsonResponse {
         try {
             $usuarios = $userService->listarUsuarios();
             $datos = array_map(fn(User $u) => $this->serializarUsuario($u), $usuarios);
@@ -121,12 +115,11 @@ class AuthController extends AbstractController
     }
 
     /**
-     * POST /api/users - Crea un nuevo usuario (solo ADMIN)
+     * POST /api/users - Crea un nuevo usuario
      */
     #[Route('/api/users', name: 'api_users_create', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function crearUsuario(Request $request, UserService $userService): JsonResponse
-    {
+    public function crearUsuario(Request $request, UserService $userService): JsonResponse {
         try {
             $datos = json_decode($request->getContent(), true);
 
@@ -152,12 +145,11 @@ class AuthController extends AbstractController
     }
 
     /**
-     * PUT /api/users/{id} - Actualiza rol de un usuario (solo ADMIN)
+     * PUT /api/users/{id} - Actualiza rol de un usuario
      */
     #[Route('/api/users/{id}', name: 'api_users_update', methods: ['PUT'], requirements: ['id' => '\d+'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function actualizarUsuario(int $id, Request $request, UserService $userService, ManagerRegistry $doctrine): JsonResponse
-    {
+    public function actualizarUsuario(int $id, Request $request, UserService $userService, ManagerRegistry $doctrine): JsonResponse {
         try {
             $datos = json_decode($request->getContent(), true);
             $usuario = $doctrine->getRepository(User::class)->find($id);
@@ -179,12 +171,11 @@ class AuthController extends AbstractController
     }
 
     /**
-     * DELETE /api/users/{id} - Elimina un usuario (solo ADMIN)
+     * DELETE /api/users/{id} - Elimina un usuario 
      */
     #[Route('/api/users/{id}', name: 'api_users_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     #[IsGranted('ROLE_ADMIN')]
-    public function eliminarUsuario(int $id, UserService $userService): JsonResponse
-    {
+    public function eliminarUsuario(int $id, UserService $userService): JsonResponse {
         try {
             $userService->eliminarUsuario($id);
             return $this->json(['ok' => true, 'mensaje' => 'Usuario eliminado correctamente']);
@@ -193,8 +184,7 @@ class AuthController extends AbstractController
         }
     }
 
-    private function serializarUsuario(User $usuario): array
-    {
+    private function serializarUsuario(User $usuario): array {
         return [
             'id' => $usuario->getId(),
             'email' => $usuario->getEmail(),

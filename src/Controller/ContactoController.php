@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Controller;
-
 use App\Service\ContactoService;
 use App\Service\CsvImportService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -11,14 +9,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-class ContactoController extends AbstractController
-{
+class ContactoController extends AbstractController {
     /**
      * GET / - Redirige a index.html
      */
     #[Route('/', name: 'root', methods: ['GET'])]
-    public function root(): RedirectResponse
-    {
+    public function root(): RedirectResponse {
         return $this->redirect('/index.html');
     }
 
@@ -26,8 +22,7 @@ class ContactoController extends AbstractController
      * GET /api/contactos - Busca contactos (parámetro opcional: q=búsqueda)
      */
     #[Route('/api/contactos', name: 'index', methods: ['GET'])]
-    public function index(Request $request, ContactoService $service): JsonResponse
-    {
+    public function index(Request $request, ContactoService $service): JsonResponse {
         try {
             $q = $request->query->get('q', '');
             $contactos = $service->buscar($q);
@@ -42,12 +37,11 @@ class ContactoController extends AbstractController
 
     /**
      * POST /api/contactos - Crea un nuevo contacto
-     * Body JSON: { "nombre": "...", "departamento": "...", "extension": "...", "email": "..." }
+     * JSON: { "nombre": "", "departamento": "", "extension": "", "email": "" }
      */
     #[Route('/api/contactos', name: 'create', methods: ['POST'])]
     #[IsGranted('ROLE_ELEVATED')]
-    public function crear(Request $request, ContactoService $service): JsonResponse
-    {
+    public function crear(Request $request, ContactoService $service): JsonResponse {
         try {
             $datos = json_decode($request->getContent(), true);
 
@@ -100,8 +94,7 @@ class ContactoController extends AbstractController
      */
     #[Route('/api/contactos/{id}', name: 'update', methods: ['PUT'], requirements: ['id' => '\d+'])]
     #[IsGranted('ROLE_ELEVATED')]
-    public function actualizar(int $id, Request $request, ContactoService $service): JsonResponse
-    {
+    public function actualizar(int $id, Request $request, ContactoService $service): JsonResponse {
         try {
             $datos = json_decode($request->getContent(), true);
 
@@ -146,8 +139,7 @@ class ContactoController extends AbstractController
      */
     #[Route('/api/contactos/{id}', name: 'delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     #[IsGranted('ROLE_ELEVATED')]
-    public function eliminar(int $id, ContactoService $service): JsonResponse
-    {
+    public function eliminar(int $id, ContactoService $service): JsonResponse {
         try {
             $service->eliminar($id);
 
@@ -172,9 +164,8 @@ class ContactoController extends AbstractController
      * DELETE /api/contactos/batch/todos - Elimina todos los contactos
      */
     #[Route('/api/contactos/batch/todos', name: 'delete_all', methods: ['DELETE'])]
-    #[IsGranted('ROLE_ELEVATED')] // <-- Cambiado de ROLE_ADMIN a ROLE_ELEVATED
-    public function eliminarTodos(ContactoService $service): JsonResponse
-    {
+    #[IsGranted('ROLE_ELEVATED')]
+    public function eliminarTodos(ContactoService $service): JsonResponse {
         try {
             $cantidad = $service->eliminarTodos();
 
@@ -193,12 +184,11 @@ class ContactoController extends AbstractController
 
     /**
      * POST /api/contactos/importar - Importa contactos desde CSV
-     * Form-data: archivo_csv (file)
+     * Form-data: archivo_csv (fichero)
      */
     #[Route('/api/contactos/importar', name: 'import', methods: ['POST'])]
-    #[IsGranted('ROLE_ELEVATED')] // <-- Cambiado de ROLE_ADMIN a ROLE_ELEVATED
-    public function importar(Request $request, CsvImportService $service): JsonResponse
-    {
+    #[IsGranted('ROLE_ELEVATED')]
+    public function importar(Request $request, CsvImportService $service): JsonResponse {
         try {
             $archivo = $request->files->get('archivo_csv');
 
@@ -233,10 +223,9 @@ class ContactoController extends AbstractController
     }
 
     /**
-     * Serializa un contacto para JSON.
+     * Serializa un contacto para JSON
      */
-    private function serializeContacto($contacto): array
-    {
+    private function serializeContacto($contacto): array {
         return [
             'id' => $contacto->getId(),
             'nombre' => $contacto->getNombre(),

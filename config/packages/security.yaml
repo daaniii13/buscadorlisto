@@ -23,7 +23,7 @@ security:
                 target: /index.html
 
     access_control:
-        # Permitimos acceso público a las rutas de auth para que tu lógica manual funcione
+        # Permitir acceso público a las rutas de auth para que la lógica funcione
         - { path: ^/api/auth/, roles: PUBLIC_ACCESS }
         - { path: ^/api/users, roles: ROLE_ADMIN }
         - { path: ^/api/contactos, methods: [POST, PUT, DELETE], roles: [ROLE_ADMIN, ROLE_ELEVATED] }

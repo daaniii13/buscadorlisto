@@ -1,17 +1,4 @@
 /**
- * ============================================================================
- * BUSCADOR ADMIN - CORE JAVASCRIPT
- * ============================================================================
- * Este script gestiona la interfaz completa del buscador de contactos,
- * incluyendo autenticación con Symfony, manipulación del DOM responsivo,
- * navegación accesible por teclado y peticiones asíncronas a la API REST.
- */
-
-// ----------------------------------------------------------------------------
-// 1. UTILIDADES DE RED Y API
-// ----------------------------------------------------------------------------
-
-/**
  * Envoltorio para fetch() que garantiza la comunicación JSON con Symfony.
  * Previene errores de redirección y asegura que las credenciales (cookies) viajen.
  */
@@ -32,18 +19,13 @@ async function fetchApi(url, opciones = {}) {
     };
 
     const respuesta = await fetch(url, config);
-    
     const contentType = respuesta.headers.get('content-type');
+
     if (contentType && contentType.includes('text/html')) {
         throw new Error('El servidor devolvió HTML (Posible fallo fatal en Symfony).');
     }
-
     return respuesta;
 }
-
-// ----------------------------------------------------------------------------
-// 2. REFERENCIAS AL DOM
-// ----------------------------------------------------------------------------
 
 // Referencias principales
 const inputBusqueda = document.getElementById('busqueda');
@@ -69,7 +51,7 @@ const nuevoDepartamento = document.getElementById('nuevoDepartamento');
 const nuevoExtension = document.getElementById('nuevoExtension');
 const nuevoEmail = document.getElementById('nuevoEmail');
 
-// Referencias de Autenticación y Perfil
+// Referencias de autenticación y perfil
 const btnPerfilToggle = document.getElementById('btnPerfilToggle');
 const panelPerfil = document.getElementById('panelPerfil');
 const loginForm = document.getElementById('loginForm');
@@ -88,10 +70,6 @@ const panelNuevoUsuario = document.getElementById('panelNuevoUsuario');
 const guardarNuevoUsuario = document.getElementById('guardarNuevoUsuario');
 const cancelarNuevoUsuario = document.getElementById('cancelarNuevoUsuario');
 
-// ----------------------------------------------------------------------------
-// 3. ESTADO GLOBAL DE LA APLICACIÓN
-// ----------------------------------------------------------------------------
-
 let contactosActuales = [];
 let idEditar = null;
 let estadosContactos = {};
@@ -108,12 +86,8 @@ const coloresDepartamento = [
 
 const coloresDepartamentos = JSON.parse(localStorage.getItem('coloresDepartamentos')) || {};
 
-// ----------------------------------------------------------------------------
-// 4. MÓDULO DE AUTENTICACIÓN
-// ----------------------------------------------------------------------------
-
 /**
- * Verifica la sesión activa contra el endpoint de Symfony.
+ * Verifica la sesión activa contra el endpoint de Symfony
  */
 async function verificarSesion() {
     try {
@@ -129,24 +103,25 @@ async function verificarSesion() {
 }
 
 /**
- * Alterna la visibilidad de las herramientas basadas en el rol.
+ * Alterna la visibilidad de las herramientas basadas en el rol
  */
 function actualizarInterfazAuth() {
     if (usuarioActual) {
         accionesAdmin.style.display = 'flex';
         loginForm.classList.add('oculto');
         loggedInPanel.classList.remove('oculto');
-        btnPerfilToggle.textContent = 'Mi Perfil';
+        btnPerfilToggle.textContent = 'Mi perfil';
         usuarioNombre.textContent = usuarioActual.nombre || usuarioActual.email;
         
         const esAdmin = usuarioActual.roles.includes('ROLE_ADMIN');
-        rolBadge.textContent = esAdmin ? 'Admin' : 'Editor';
+        rolBadge.textContent = esAdmin ? 'Administrador' : 'Usuario privilegiado';
         if (btnNuevoUsuario) btnNuevoUsuario.style.display = esAdmin ? 'block' : 'none';
+
     } else {
         accionesAdmin.style.display = 'none';
         loginForm.classList.remove('oculto');
         loggedInPanel.classList.add('oculto');
-        btnPerfilToggle.textContent = 'Iniciar Sesión';
+        btnPerfilToggle.textContent = 'Iniciar sesión';
         panelNuevo.classList.add('oculto');
         panelNuevoUsuario?.classList.add('oculto');
     }
@@ -154,7 +129,6 @@ function actualizarInterfazAuth() {
 }
 
 btnPerfilToggle?.addEventListener('click', () => panelPerfil.classList.toggle('oculto'));
-
 btnLogin?.addEventListener('click', async () => {
     const email = loginEmail.value.trim();
     const password = loginPassword.value.trim();
@@ -220,19 +194,15 @@ inputsLogin.forEach((input, index) => {
     });
 });
 
-// ----------------------------------------------------------------------------
-// 5. MOTOR PRINCIPAL DE LA INTERFAZ
-// ----------------------------------------------------------------------------
-
 function mostrarMensaje(texto, esError = false) {
     if (!estado) return;
     if (timeoutMensaje) clearTimeout(timeoutMensaje);
 
-    estado.innerHTML = texto; // Permite inyectar HTML para los botones inline
+    estado.innerHTML = texto; 
     estado.style.color = esError ? '#dc2626' : '#16a34a';
     estado.style.fontWeight = '700';
     
-    // Solo establece el timeout si no hay botones inyectados (fase de eliminación)
+    // Solo establece el timeout si no hay botones inyectados
     if (!texto.includes('<button')) {
         timeoutMensaje = setTimeout(() => {
             estado.style.color = '#64748b';
@@ -243,7 +213,7 @@ function mostrarMensaje(texto, esError = false) {
     }
 }
 
-// Limita la entrada visual a 4 dígitos
+// Limita la entrada a 4 dígitos
 nuevoExtension?.addEventListener('input', (e) => {
     if (e.target.value.length > 4) e.target.value = e.target.value.slice(0, 4);
 });
@@ -262,7 +232,7 @@ async function cargarContactos(q = '') {
 }
 
 /**
- * Inyecta la navegación lógica entre tarjetas (Arrow keys / Esc).
+ * Inyecta la navegación lógica entre tarjetas
  */
 function inyectarNavegacionTecladoTarjeta(tarjeta, contactoId) {
     tarjeta.setAttribute('tabindex', '0');
@@ -324,7 +294,7 @@ function renderizarContactos(contactos) {
 
         const estadoActual = estadosContactos[contacto.id] || 'normal';
 
-        // MODO EDICIÓN
+        // Modo edición
         if (contacto.id === idEditar) {
             tarjeta.innerHTML = `
                 <div class="tarjeta_grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
@@ -336,8 +306,7 @@ function renderizarContactos(contactos) {
                 <div class="tarjeta_acciones" style="display: flex; gap: 10px; margin-top: 14px;">
                     <button type="button" class="boton boton--guardar-edicion btn-guardar-inline">Guardar cambios</button>
                     <button type="button" class="boton boton--secundario btn-cancelar-inline">Cancelar</button>
-                </div>
-            `;
+                </div>`;
 
             const btnGuardar = tarjeta.querySelector('.btn-guardar-inline');
             const btnCancelar = tarjeta.querySelector('.btn-cancelar-inline');
@@ -351,7 +320,7 @@ function renderizarContactos(contactos) {
 
             setTimeout(() => tarjeta.querySelector(`#editNombre-${contacto.id}`)?.focus(), 50);
 
-        // MODO CUENTA ATRÁS ELIMINACIÓN
+        // Modo cuenta atrás de eliminación
         } else if (estadoActual === 'eliminando') {
             tarjeta.classList.add('tarjeta--advertencia');
             const segs = segundosEliminar[contacto.id] ?? 5;
@@ -366,7 +335,7 @@ function renderizarContactos(contactos) {
             `;
             tarjeta.querySelector('.btn-deshacer-inline').addEventListener('click', () => cancelarEliminacionIndividual(contacto.id));
 
-        // MODO CONFIRMACIÓN PREVIA
+        // Modo confirmación previa
         } else if (estadoActual === 'confirmar') {
             tarjeta.innerHTML = `
                 <div class="tarjeta_contenido">
@@ -374,7 +343,7 @@ function renderizarContactos(contactos) {
                     <p><strong>Departamento:</strong> ${contacto.departamento}</p>
                 </div>
                 <div class="tarjeta_acciones-contacto">
-                    <button type="button" class="boton boton--confirmar btn-confirmar">Confirmar Eliminación</button>
+                    <button type="button" class="boton boton--confirmar btn-confirmar">Confirmar borrado</button>
                     <button type="button" class="boton boton--secundario btn-cancelar-inline">Cancelar</button>
                 </div>
             `;
@@ -385,7 +354,7 @@ function renderizarContactos(contactos) {
                 document.getElementById(`tarjeta-${contacto.id}`)?.focus();
             });
 
-        // MODO NORMAL (LECTURA)
+        // Modo normal (de lectura)
         } else {
             let htmlBotones = '';
             if (usuarioActual) {
@@ -403,8 +372,7 @@ function renderizarContactos(contactos) {
                     <p><strong>Extensión:</strong> ${contacto.extension}</p>
                     <p><strong>Email:</strong> ${contacto.email || '-'}</p>
                 </div>
-                ${htmlBotones}
-            `;
+                ${htmlBotones}`;
 
             if (usuarioActual) {
                 tarjeta.querySelector('.btn-editar').addEventListener('click', () => {
@@ -425,10 +393,6 @@ function renderizarContactos(contactos) {
     });
 }
 
-// ----------------------------------------------------------------------------
-// 6. GESTIÓN DE CONTACTOS (CRUD)
-// ----------------------------------------------------------------------------
-
 async function guardarContactoInline(id, tarjeta) {
     const datos = { 
         nombre: tarjeta.querySelector(`#editNombre-${id}`).value.trim(), 
@@ -446,7 +410,7 @@ async function guardarContactoInline(id, tarjeta) {
         const respuesta = await fetchApi(`/api/contactos/${id}`, { method: 'PUT', body: JSON.stringify(datos) });
         if (!respuesta.ok) {
             const resultado = await respuesta.json().catch(() => ({}));
-            mostrarMensaje(resultado.error || 'Error del backend al guardar', true);
+            mostrarMensaje(resultado.error || 'Error al guardar el contacto', true);
             return;
         }
         mostrarMensaje('Contacto actualizado correctamente');
@@ -470,7 +434,7 @@ async function guardarContacto() {
         const respuesta = await fetchApi('/api/contactos', { method: 'POST', body: JSON.stringify(datos) });
         if (!respuesta.ok) {
             const resultado = await respuesta.json().catch(() => ({}));
-            mostrarMensaje(resultado.error || 'Error del servidor al guardar. Verifica el backend.', true);
+            mostrarMensaje(resultado.error || 'Error del servidor al guardar.', true);
             return;
         }
         mostrarMensaje('Contacto añadido correctamente');
@@ -491,10 +455,6 @@ function limpiarFormulario() {
     nuevoExtension.value = '';
     nuevoEmail.value = '';
 }
-
-// ----------------------------------------------------------------------------
-// 7. ELIMINACIÓN DE CONTACTOS
-// ----------------------------------------------------------------------------
 
 function iniciarContadorEliminar(id) {
     if (timersEliminar[id]) return;
@@ -535,7 +495,7 @@ async function ejecutarEliminacionReal(id) {
         const respuesta = await fetchApi(`/api/contactos/${id}`, { method: 'DELETE' });
         if (!respuesta.ok) {
             const resultado = await respuesta.json().catch(() => ({}));
-            mostrarMensaje(resultado.error || 'Error del backend al eliminar. Verifica el método remove()', true);
+            mostrarMensaje(resultado.error || 'Error del servidor durante la eliminación.', true);
         } else {
             mostrarMensaje('Contacto eliminado correctamente');
         }
@@ -547,8 +507,7 @@ async function ejecutarEliminacionReal(id) {
 }
 
 /**
- * Eliminación masiva SIN usar window.confirm().
- * Se inyectan controles directamente en el DOM para la fase de confirmación.
+ * Eliminación masiva. Se inyectan controles directamente en el DOM para la fase de confirmación.
  */
 function eliminarTodosContactos() {
     if (!contactosActuales.length) {
@@ -577,15 +536,15 @@ function eliminarTodosContactos() {
         cargarContactos(inputBusqueda.value);
     });
 
-    // Aceptar Fase 1 -> Generar CSV y pasar a Fase 2
+    // Generar CSV y pasar a Fase 2
     document.getElementById('btnFase1Aceptar').addEventListener('click', () => {
-        exportarCSV(true); // Se lanza el respaldo automáticamente en este punto
+        exportarCSV(true);
 
         // Fase 2: Confirmación definitiva
         estado.innerHTML = `
             <div style="display:flex; gap:12px; align-items:center; justify-content:center; background:#fee2e2; padding:8px 14px; border-radius:6px; border: 1px solid #ef4444;">
-                <span style="font-weight:700; color:#dc2626;">Respaldo CSV creado. ¿Confirmas la eliminación definitiva?</span>
-                <button type="button" id="btnFase2Confirmar" class="boton boton--eliminar" style="padding: 4px 10px; font-size: 13px;">Confirmar eliminación</button>
+                <span style="font-weight:700; color:#dc2626;">Respaldo CSV creado. ¿Confirmas la eliminación definitiva de todos los contactos?</span>
+                <button type="button" id="btnFase2Confirmar" class="boton boton--eliminar" style="padding: 4px 10px; font-size: 13px;">Confirmar borrado masivo</button>
                 <button type="button" id="btnFase2Cancelar" class="boton boton--secundario" style="padding: 4px 10px; font-size: 13px;" autofocus>Cancelar</button>
             </div>`;
 
@@ -595,14 +554,14 @@ function eliminarTodosContactos() {
             cargarContactos(inputBusqueda.value);
         });
 
-        // Aceptar Fase 2 -> Pasar a Fase 3 (Cuenta atrás)
+        // Pasar a Fase 3 (cuenta atrás)
         document.getElementById('btnFase2Confirmar').addEventListener('click', () => {
             let segundos = 5;
             let cancelado = false;
 
             estado.innerHTML =
                 `<div style="display:flex; gap:12px; align-items:center; justify-content:center;">
-                    <span style="font-weight:700; color:#dc2626;">Borrando la base de datos en: <span id="contadorMasivo">${segundos}s</span></span>
+                    <span style="font-weight:700; color:#dc2626;">Borrando todos los contacto en: <span id="contadorMasivo">${segundos}s</span></span>
                     <button type="button" id="btnCancelarMasivoFinal" class="boton boton--deshacer" autofocus>Abortar</button>
                 </div>`;
 
@@ -621,13 +580,13 @@ function eliminarTodosContactos() {
                         const respuesta = await fetchApi('/api/contactos/batch/todos', { method: 'DELETE' });
                         if (!respuesta.ok) {
                             const res = await respuesta.json().catch(() => ({}));
-                            mostrarMensaje(res.error || 'Error backend eliminando', true);
+                            mostrarMensaje(res.error || 'Error del servidor durante la eliminación', true);
                             return;
                         }
                         await cargarContactos(inputBusqueda.value);
                         mostrarMensaje('Limpieza completa realizada exitosamente');
                     } catch (e) {
-                        mostrarMensaje('Fallo al limpiar BD', true);
+                        mostrarMensaje('Fallo al limpiar la base de datos', true);
                         cargarContactos(inputBusqueda.value);
                     }
                 }
@@ -644,13 +603,9 @@ function eliminarTodosContactos() {
     });
 }
 
-// ----------------------------------------------------------------------------
-// 8. IMPORTACIÓN Y EXPORTACIÓN (CSV / PDF)
-// ----------------------------------------------------------------------------
-
 function exportarCSV(esRespaldo = false) {
     if (!contactosActuales.length) {
-        if (!esRespaldo) mostrarMensaje('No hay contactos para exportar.', true);
+        if (!esRespaldo) mostrarMensaje('No hay contactos para exportar', true);
         return;
     }
     const escapar = (val) => `"${String(val ?? '').replace(/"/g, '""').trim()}"`;
@@ -682,12 +637,12 @@ async function importarCSV(archivo) {
 }
 
 /**
- * Carga jsPDF asíncronamente si el HTML carece de la etiqueta CDN.
+ * Carga jsPDF asíncronamente
  */
 async function cargarDependenciasPdf() {
     if (window.jspdf) return true;
     
-    mostrarMensaje('Inicializando motor PDF (primera vez)...', false);
+    mostrarMensaje('Inicializando motor PDF', false);
     
     try {
         await new Promise((resolve, reject) => {
@@ -718,17 +673,13 @@ btnExportarPdf?.addEventListener('click', async () => {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.setFontSize(20);
-    doc.text('Buscador Administrativo - Contactos', 14, 20);
+    doc.text('Buscador de contactos - PDF', 14, 20);
     
     const filas = contactosActuales.map(c => [c.nombre, c.departamento, c.extension, c.email || '-']);
     doc.autoTable({ startY: 30, head: [['Nombre', 'Departamento', 'Extension', 'Email']], body: filas });
     doc.save('Directorio_Contactos.pdf');
     mostrarMensaje('PDF generado correctamente');
 });
-
-// ----------------------------------------------------------------------------
-// 9. GESTIÓN DE USUARIOS DEL SISTEMA
-// ----------------------------------------------------------------------------
 
 btnNuevoUsuario?.addEventListener('click', () => {
     panelNuevoUsuario.classList.remove('oculto');
@@ -739,13 +690,12 @@ btnNuevoUsuario?.addEventListener('click', () => {
 });
 
 cancelarNuevoUsuario?.addEventListener('click', () => panelNuevoUsuario.classList.add('oculto'));
-
 guardarNuevoUsuario?.addEventListener('click', async () => {
     const email = document.getElementById('nuevoUsuarioEmail').value.trim();
     const password = document.getElementById('nuevoUsuarioPassword').value.trim();
 
     if (!email.includes('@') || !password) {
-        mostrarMensaje('Credenciales inválidas', true);
+        mostrarMensaje('Formato incorrecto de email', true);
         return;
     }
 
@@ -757,7 +707,7 @@ guardarNuevoUsuario?.addEventListener('click', async () => {
         
         if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            mostrarMensaje(data.error || 'Error del backend al crear el usuario. Verifica UserService.', true);
+            mostrarMensaje(data.error || 'Error del servidor durante la creación del usuario', true);
             return;
         }
 
@@ -767,10 +717,6 @@ guardarNuevoUsuario?.addEventListener('click', async () => {
         mostrarMensaje('Fallo de red al crear usuario', true);
     }
 });
-
-// ----------------------------------------------------------------------------
-// 10. EVENTOS BASE Y EJECUCIÓN INICIAL
-// ----------------------------------------------------------------------------
 
 inputBusqueda?.addEventListener('input', () => cargarContactos(inputBusqueda.value));
 inputBusqueda?.addEventListener('keydown', (e) => {

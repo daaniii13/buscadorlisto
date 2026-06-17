@@ -4,16 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buscador de contactos</title>
-    <link rel="stylesheet" href="./styles.css?v=3">
+    <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-    
     <div class="perfil-contenedor" id="contenedorLoginFlotante">
         <button id="btnPerfilToggle" class="boton boton--secundario">Iniciar sesión</button>
-        
+
         <div id="panelPerfil" class="panel-desplegable oculto">
             <div id="loginForm" class="login-form">
-                <h3 style="margin-bottom: 12px; font-size: 15px; font-weight: 800;">Acceso administrativo</h3>
+                <h3 style="margin-bottom: 12px; font-size: 15px; font-weight: 800;">Login</h3>
                 <div class="campo" style="margin-bottom: 8px;">
                     <input type="email" id="loginEmail" placeholder="correo@ejemplo.com">
                 </div>
@@ -29,7 +28,8 @@
                     <span class="login-panel__badge" id="rolBadge"></span>
                     <p id="usuarioNombre" style="font-weight: 700; margin: 0; font-size: 14px;"></p>
                 </div>
-                <button type="button" class="boton boton--principal" id="btnNuevoUsuario" style="width: 100%; margin-bottom: 10px; border-color: #8b5cf6; color: #8b5cf6; display: none;">+ Crear Usuario</button>
+                <button type="button" class="boton boton--principal" id="btnNuevoUsuario" style="width: 100%; 
+                    margin-bottom: 10px; border-color: #8b5cf6; color: #8b5cf6; display: none;">+ Crear Usuario</button>
                 <button type="button" class="boton boton--secundario" style="width: 100%;" id="btnLogout">Cerrar sesión</button>
             </div>
         </div>
@@ -70,7 +70,7 @@
 
         <div class="panel-nuevo oculto" id="panelNuevoUsuario">
             <div class="tarjeta tarjeta--auth" style="border-left-color: #8b5cf6;">
-                <h3 style="margin-bottom: 15px; color: #6d28d9;">Nuevo usuario (Permisos Elevados)</h3>
+                <h3 style="margin-bottom: 15px; color: #6d28d9;">Nuevo usuario logueable</h3>
                 <div class="tarjeta_grid">
                     <div class="campo"><label>Nombre*</label><input type="text" id="nuevoUsuarioNombre" required></div>
                     <div class="campo"><label>Email*</label><input type="email" id="nuevoUsuarioEmail" required></div>
@@ -85,6 +85,6 @@
 
         <div class="resultados" id="resultados"></div>
     </div>
-    <script src="./script.js?v=3"></script>
+    <script src="./script.js"></script>
 </body>
 </html>
