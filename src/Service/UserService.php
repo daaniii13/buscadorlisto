@@ -16,10 +16,12 @@ class UserService {
     /**
      * Crea un nuevo usuario con validación
      */
-    public function crearUsuario(string $email, string $password, array $roles = ['ROLE_ELEVATED']): User {
+    public function crearUsuario(string $email, string $password, array $roles = ['ROLE_ELEVATED'], ?string $nombre = null): User {
         $usuario = new User();
         $usuario->setEmail($email);
         $usuario->setRoles($roles);
+        $usuario->setNombre($nombre); // <-- Añadir esta línea
+        
         $hashedPassword = $this->passwordHasher->hashPassword($usuario, $password);
         $usuario->setPassword($hashedPassword);
 

@@ -22,7 +22,6 @@
                 <button type="button" class="boton boton--principal" style="width: 100%;" id="btnLogin">Ingresar</button>
                 <small class="login-panel__error oculto" id="loginError"></small>
             </div>
-
             <div id="loggedInPanel" class="oculto">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                     <span class="login-panel__badge" id="rolBadge"></span>
@@ -70,7 +69,7 @@
 
         <div class="panel-nuevo oculto" id="panelNuevoUsuario">
             <div class="tarjeta tarjeta--auth" style="border-left-color: #8b5cf6;">
-                <h3 style="margin-bottom: 15px; color: #6d28d9;">Nuevo usuario logueable</h3>
+                <h3 style="margin-bottom: 15px; color: #6d28d9;">Nuevo usuario</h3>
                 <div class="tarjeta_grid">
                     <div class="campo"><label>Nombre*</label><input type="text" id="nuevoUsuarioNombre" required></div>
                     <div class="campo"><label>Email*</label><input type="email" id="nuevoUsuarioEmail" required></div>
@@ -81,6 +80,17 @@
                     <button type="button" class="boton boton--secundario" id="cancelarNuevoUsuario">Cancelar</button>
                 </div>
             </div>
+        </div>
+
+        <!-- Contenedor para la lista de usuarios -->
+        <div id="panel-usuarios" class="oculto" role="region" aria-label="Lista de usuarios">
+            <div class="cabecera-panel">
+                <h2>Gestión de Usuarios</h2>
+                <!-- Botón accesible por teclado -->
+                <button id="btn-cerrar-usuarios" tabindex="0" aria-label="Cerrar panel">Cerrar</button>
+            </div>
+            <ul id="lista-usuarios-ul" role="list">
+            </ul>
         </div>
 
         <div class="resultados" id="resultados"></div>

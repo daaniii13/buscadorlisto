@@ -114,7 +114,7 @@ function actualizarInterfazAuth() {
         usuarioNombre.textContent = usuarioActual.nombre || usuarioActual.email;
         
         const esAdmin = usuarioActual.roles.includes('ROLE_ADMIN');
-        rolBadge.textContent = esAdmin ? 'Administrador' : 'Usuario privilegiado';
+        rolBadge.textContent = esAdmin ? 'Admin' : 'Mod';
         if (btnNuevoUsuario) btnNuevoUsuario.style.display = esAdmin ? 'block' : 'none';
 
     } else {
@@ -760,3 +760,83 @@ inputCsv?.addEventListener('change', (e) => {
 // Arranque
 verificarSesion();
 cargarContactos();
+
+// Referencias al DOM
+const panelUsuarios = document.getElementById('panel-usuarios');
+const listaUsuariosUl = document.getElementById('lista-usuarios-ul');
+const btnCerrarUsuarios = document.getElementById('btn-cerrar-usuarios');
+
+/**
+ * Función para obtener y renderizar los usuarios desde la base de datos
+ */
+async function cargarListadoUsuarios() {
+    try {
+        const respuesta = await fetch('/api/users', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                // Asegúrate de enviar el token o la cookie de sesión del administrador
+                'Authorization': 'Bearer ' + localStorage.getItem('token') 
+            }
+        });
+
+        if (!respuesta.ok) {
+            throw new Error('No tienes permisos o hubo un error en el servidor');
+        }
+
+        const datos = await respuesta.json();
+        renderizarUsuarios(datos.usuarios); // Asumiendo que el JSON devuelve un array "usuarios"
+        
+        // Mostrar el panel y enfocar el primer elemento para accesibilidad
+        panelUsuarios.classList.remove('oculto');
+        panelUsuarios.focus();
+
+    } catch (error) {
+        console.error('Error al cargar la lista de usuarios:', error);
+        alert('Error al cargar usuarios. Comprueba tus permisos.');
+    }
+}
+
+/**
+ * Renderiza los elementos HTML en la lista, asegurando navegación por teclado
+ */
+function renderizarUsuarios(usuarios) {
+    listaUsuariosUl.innerHTML = ''; // Limpiar lista anterior
+
+    usuarios.forEach(usuario => {
+        const li = document.createElement('li');
+        li.className = 'usuario-item';
+        li.tabIndex = 0; // Hace que el elemento reciba el foco con la tecla Tab
+        li.setAttribute('role', 'listitem');
+        
+        // Mostrar datos: email, nombre (ahora que ya lo guarda) y roles
+        li.innerHTML = `
+            <strong>${usuario.nombre || 'Sin nombre'}</strong> - ${usuario.email}
+            <span class="badge-rol">${usuario.roles.join(', ')}</span>
+        `;
+
+        // Permitir interactuar con el usuario usando la tecla Enter
+        li.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                console.log('Usuario seleccionado para edición:', usuario.email);
+                // Aquí podrías abrir un formulario de edición para el admin
+            }
+        });
+
+        listaUsuariosUl.appendChild(li);
+    });
+}
+
+// Evento para cerrar el panel con el botón
+btnCerrarUsuarios.addEventListener('click', cerrarPanelUsuarios);
+
+// Accesibilidad global: Cerrar el panel al presionar la tecla Escape (Esc)
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panelUsuarios.classList.contains('oculto')) {
+        cerrarPanelUsuarios();
+    }
+});
+
+function cerrarPanelUsuarios() {
+    panelUsuarios.classList.add('oculto');
+}

@@ -132,7 +132,8 @@ class AuthController extends AbstractController {
             }
 
             $roles = $datos['roles'] ?? ['ROLE_ELEVATED'];
-            $usuario = $userService->crearUsuario($datos['email'], $datos['password'], $roles);
+            $nombre = $datos['nombre'] ?? null;
+            $usuario = $userService->crearUsuario($datos['email'], $datos['password'], $roles, $nombre);
 
             return $this->json([
                 'ok' => true,
