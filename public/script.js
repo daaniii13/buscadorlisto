@@ -69,6 +69,7 @@ const btnNuevoUsuario = document.getElementById('btnNuevoUsuario');
 const panelNuevoUsuario = document.getElementById('panelNuevoUsuario');
 const guardarNuevoUsuario = document.getElementById('guardarNuevoUsuario');
 const cancelarNuevoUsuario = document.getElementById('cancelarNuevoUsuario');
+const btnVerUsuarios = document.getElementById('btnVerUsuarios');
 
 let contactosActuales = [];
 let idEditar = null;
@@ -116,6 +117,7 @@ function actualizarInterfazAuth() {
         const esAdmin = usuarioActual.roles.includes('ROLE_ADMIN');
         rolBadge.textContent = esAdmin ? 'Admin' : 'Mod';
         if (btnNuevoUsuario) btnNuevoUsuario.style.display = esAdmin ? 'block' : 'none';
+        if (btnVerUsuarios) btnVerUsuarios.style.display = esAdmin ? 'block' : 'none'; // <-- LÍNEA CORREGIDA AÑADIDA AQUÍ
 
     } else {
         accionesAdmin.style.display = 'none';
@@ -124,6 +126,7 @@ function actualizarInterfazAuth() {
         btnPerfilToggle.textContent = 'Iniciar sesión';
         panelNuevo.classList.add('oculto');
         panelNuevoUsuario?.classList.add('oculto');
+        if (panelUsuarios) panelUsuarios.classList.add('oculto'); // Ocultar el panel de usuarios si se cierra sesión
     }
     renderizarContactos(contactosActuales);
 }
@@ -213,9 +216,9 @@ function mostrarMensaje(texto, esError = false) {
     }
 }
 
-// Limita la entrada a 4 dígitos
+// Limita la entrada a 13 dígitos
 nuevoExtension?.addEventListener('input', (e) => {
-    if (e.target.value.length > 4) e.target.value = e.target.value.slice(0, 4);
+    if (e.target.value.length > 13) e.target.value = e.target.value.slice(0, 13);
 });
 
 async function cargarContactos(q = '') {
@@ -429,6 +432,15 @@ async function guardarContacto() {
         extension: nuevoExtension.value.trim(), 
         email: nuevoEmail.value.trim() 
     };
+
+    if (!datos.nombre || !datos.departamento) {
+        mostrarMensaje('Nombre y departamento son obligatorios', true);
+        return;
+    }
+    if (datos.email && !datos.email.includes('@')) {
+        mostrarMensaje('El correo debe contener al menos un @', true);
+        return;
+    }
 
     try {
         const respuesta = await fetchApi('/api/contactos', { method: 'POST', body: JSON.stringify(datos) });
@@ -677,7 +689,7 @@ btnExportarPdf?.addEventListener('click', async () => {
     
     const filas = contactosActuales.map(c => [c.nombre, c.departamento, c.extension, c.email || '-']);
     doc.autoTable({ startY: 30, head: [['Nombre', 'Departamento', 'Extension', 'Email']], body: filas });
-    doc.save('Directorio_Contactos.pdf');
+    doc.save('Listado_Contactos.pdf');
     mostrarMensaje('PDF generado correctamente');
 });
 
@@ -693,16 +705,18 @@ cancelarNuevoUsuario?.addEventListener('click', () => panelNuevoUsuario.classLis
 guardarNuevoUsuario?.addEventListener('click', async () => {
     const email = document.getElementById('nuevoUsuarioEmail').value.trim();
     const password = document.getElementById('nuevoUsuarioPassword').value.trim();
+    const nombre = document.getElementById('nuevoUsuarioNombre').value.trim(); // <-- CAPTURAR NOMBRE
 
-    if (!email.includes('@') || !password) {
-        mostrarMensaje('Formato incorrecto de email', true);
+    if (!email.includes('@') || !password || !nombre) {
+        mostrarMensaje('Rellena todos los campos', true);
         return;
     }
 
     try {
         const res = await fetchApi('/api/users', {
             method: 'POST',
-            body: JSON.stringify({ email, password, roles: ['ROLE_ELEVATED'] })
+            // <-- INCLUIR EL NOMBRE EN EL JSON
+            body: JSON.stringify({ email, password, nombre, roles: ['ROLE_ELEVATED'] }) 
         });
         
         if (!res.ok) {
@@ -761,82 +775,87 @@ inputCsv?.addEventListener('change', (e) => {
 verificarSesion();
 cargarContactos();
 
-// Referencias al DOM
-const panelUsuarios = document.getElementById('panel-usuarios');
+// Referencias al nuevo contenedor integrado
+const contenedorListaUsuarios = document.getElementById('contenedorListaUsuarios');
 const listaUsuariosUl = document.getElementById('lista-usuarios-ul');
-const btnCerrarUsuarios = document.getElementById('btn-cerrar-usuarios');
 
 /**
- * Función para obtener y renderizar los usuarios desde la base de datos
+ * Muestra u oculta la lista de usuarios dentro del panel de sesión
  */
 async function cargarListadoUsuarios() {
-    try {
-        const respuesta = await fetch('/api/users', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                // Asegúrate de enviar el token o la cookie de sesión del administrador
-                'Authorization': 'Bearer ' + localStorage.getItem('token') 
-            }
-        });
+    // Si ya está abierto, lo cerramos
+    if (!contenedorListaUsuarios.classList.contains('oculto')) {
+        contenedorListaUsuarios.classList.add('oculto');
+        btnVerUsuarios.textContent = 'Ver lista de usuarios';
+        return;
+    }
 
-        if (!respuesta.ok) {
-            throw new Error('No tienes permisos o hubo un error en el servidor');
-        }
+    try {
+        const respuesta = await fetchApi('/api/users');
+        if (!respuesta.ok) throw new Error('No tienes permisos');
 
         const datos = await respuesta.json();
-        renderizarUsuarios(datos.usuarios); // Asumiendo que el JSON devuelve un array "usuarios"
+        renderizarUsuarios(datos.usuarios);
         
-        // Mostrar el panel y enfocar el primer elemento para accesibilidad
-        panelUsuarios.classList.remove('oculto');
-        panelUsuarios.focus();
+        contenedorListaUsuarios.classList.remove('oculto');
+        btnVerUsuarios.textContent = 'Ocultar lista de usuarios';
 
     } catch (error) {
-        console.error('Error al cargar la lista de usuarios:', error);
-        alert('Error al cargar usuarios. Comprueba tus permisos.');
+        mostrarMensaje('Error al cargar la lista.', true);
     }
 }
 
 /**
- * Renderiza los elementos HTML en la lista, asegurando navegación por teclado
+ * Renderiza los usuarios de forma limpia dentro del desplegable
  */
 function renderizarUsuarios(usuarios) {
-    listaUsuariosUl.innerHTML = ''; // Limpiar lista anterior
+    listaUsuariosUl.innerHTML = ''; 
 
     usuarios.forEach(usuario => {
         const li = document.createElement('li');
-        li.className = 'usuario-item';
-        li.tabIndex = 0; // Hace que el elemento reciba el foco con la tecla Tab
+        li.tabIndex = 0;
         li.setAttribute('role', 'listitem');
         
-        // Mostrar datos: email, nombre (ahora que ya lo guarda) y roles
-        li.innerHTML = `
-            <strong>${usuario.nombre || 'Sin nombre'}</strong> - ${usuario.email}
-            <span class="badge-rol">${usuario.roles.join(', ')}</span>
-        `;
+        // Estilos limpios integrados
+        li.style.cssText = "display: flex; flex-direction: column; padding: 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px; outline: none; transition: border-color 0.2s;";
+        
+        // Formatear el rol para que sea legible y bonito
+        const esAdmin = usuario.roles.includes('ROLE_ADMIN');
+        const rolBadge = esAdmin ? 
+            '<span style="background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Admin</span>' : 
+            '<span style="background: #dbeafe; color: #2563eb; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Mod</span>';
 
-        // Permitir interactuar con el usuario usando la tecla Enter
+        li.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <strong style="color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">${usuario.nombre || 'Sin nombre'}</strong>
+                ${rolBadge}
+            </div>
+            <span style="color: #64748b; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${usuario.email}</span>`;
+
+        // Navegación y accesibilidad visual
+        li.addEventListener('focus', () => li.style.borderColor = '#8b5cf6');
+        li.addEventListener('blur', () => li.style.borderColor = '#e2e8f0');
+        
         li.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                console.log('Usuario seleccionado para edición:', usuario.email);
-                // Aquí podrías abrir un formulario de edición para el admin
+                console.log('Usuario interactuado:', usuario.email);
             }
         });
-
         listaUsuariosUl.appendChild(li);
     });
 }
 
-// Evento para cerrar el panel con el botón
-btnCerrarUsuarios.addEventListener('click', cerrarPanelUsuarios);
+// Asignar el evento al botón
+btnVerUsuarios?.addEventListener('click', cargarListadoUsuarios);
 
-// Accesibilidad global: Cerrar el panel al presionar la tecla Escape (Esc)
+// Cerrar el panel flotante general al dar a escape, limpiando también la lista
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !panelUsuarios.classList.contains('oculto')) {
-        cerrarPanelUsuarios();
+    if (e.key === 'Escape' && panelPerfil && !panelPerfil.classList.contains('oculto')) {
+        panelPerfil.classList.add('oculto');
+        btnPerfilToggle.focus();
+        if (contenedorListaUsuarios) {
+            contenedorListaUsuarios.classList.add('oculto');
+            btnVerUsuarios.textContent = 'Ver lista de usuarios';
+        }
     }
 });
-
-function cerrarPanelUsuarios() {
-    panelUsuarios.classList.add('oculto');
-}

@@ -37,7 +37,6 @@ class ContactoController extends AbstractController {
 
     /**
      * POST /api/contactos - Crea un nuevo contacto
-     * JSON: { "nombre": "", "departamento": "", "extension": "", "email": "" }
      */
     #[Route('/api/contactos', name: 'create', methods: ['POST'])]
     #[IsGranted('ROLE_ELEVATED')]
@@ -52,7 +51,7 @@ class ContactoController extends AbstractController {
                 ], 400);
             }
 
-            // Validar campos requeridos
+            // Validar campos requeridos (ahora sí, extensión obligatoria de nuevo)
             if (empty($datos['nombre']) || empty($datos['departamento']) || empty($datos['extension'])) {
                 return $this->json([
                     'ok' => false,
@@ -184,7 +183,6 @@ class ContactoController extends AbstractController {
 
     /**
      * POST /api/contactos/importar - Importa contactos desde CSV
-     * Form-data: archivo_csv (fichero)
      */
     #[Route('/api/contactos/importar', name: 'import', methods: ['POST'])]
     #[IsGranted('ROLE_ELEVATED')]
@@ -222,9 +220,6 @@ class ContactoController extends AbstractController {
         }
     }
 
-    /**
-     * Serializa un contacto para JSON
-     */
     private function serializeContacto($contacto): array {
         return [
             'id' => $contacto->getId(),

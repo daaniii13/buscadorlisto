@@ -26,11 +26,12 @@ class Contacto
     private string $departamento = '';
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Email(message: 'El correo electrónico no es válido')]
+    #[Assert\Regex(pattern: '/@/', message: 'El correo debe contener al menos un @')]
     private ?string $email = null;
 
-    #[ORM\Column(length: 15, nullable: true)]
-    #[Assert\Length(max: 15, maxMessage: 'La extensión no puede exceder 15 caracteres')]
+    #[ORM\Column(length: 13, nullable: true)]
+    #[Assert\NotBlank(message: 'La extensión es obligatoria')]
+    #[Assert\Length(max: 13, maxMessage: 'La extensión no puede exceder 13 caracteres')]
     #[Assert\Regex(
         pattern: '/^[0-9]*$/',
         message: 'La extensión debe contener solo números'
