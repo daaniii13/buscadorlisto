@@ -1,29 +1,30 @@
-# Buscador de Contactos - Symfony 7.4
+# Buscador de contactos - Symfony 7.4
 
-Aplicación de búsqueda y gestión de contactos municipales construida con **Symfony 7.4** + **Doctrine ORM**.
+Aplicación de búsqueda y gestión de contactos municipales construida con **Symfony 7.4** y **Doctrine ORM**.
 
 ## Características
 
-✅ **Búsqueda multi-palabra** - Busca simultáneamente en varios campos
-✅ **CRUD completo** - Crear, leer, actualizar y eliminar contactos
-✅ **Importación CSV** - Con detección automática de encoding y delimitadores
-✅ **Exportación CSV** - Descarga todos los contactos como CSV
-✅ **Exportación PDF** - Genera tablas en PDF con jsPDF
-✅ **Validación centralizada** - Reglas consistentes con Symfony Validator
-✅ **API REST** - Endpoints JSON para integración fácil
-✅ **Interfaz responsiva** - Frontend HTML5 + JavaScript vanilla
+- **Búsqueda multi-palabra:** Busca simultáneamente en varios campos aplicando lógica AND.
+- **CRUD completo:** Crear, leer, actualizar y eliminar contactos.
+- **Importación CSV:** Con detección automática de encoding (limpieza de ISO-8859-1 a UTF-8) y delimitadores (coma o punto y coma).
+- **Exportación CSV:** Descarga todos los contactos en formato CSV.
+- **Exportación PDF:** Genera tablas en PDF utilizando jsPDF.
+- **Validación centralizada:** Reglas consistentes implementadas con Symfony Validator.
+- **API REST:** Endpoints JSON para una integración sencilla.
+- **Interfaz responsiva:** Frontend construido con HTML5 y JavaScript.
 
 ## Requisitos
 
 - PHP 8.2+
 - MySQL 5.7+ / MariaDB
 - Composer
-- Node.js (opcional, para assets)
+- Node.js (opcional, para gestión de assets si fuera necesario)
 
 ## Instalación
 
-### 1. Clonar y navegar
+### 1. Clonar el repositorio y acceder al directorio
 ```bash
+git clone <URL_DEL_REPOSITORIO> buscador-symfony
 cd buscador-symfony
 ```
 
@@ -32,45 +33,49 @@ cd buscador-symfony
 composer install
 ```
 
-### 3. Configurar .env
+### 3. Configurar variables de entorno
+Crea tu archivo de configuración local:
 ```bash
-cp .env .env.local  # opcional si no existe
+cp .env .env.local
 ```
 
-Editar `.env` y ajustar:
+Edita `.env.local` y ajusta las credenciales de tu base de datos:
 ```env
-DATABASE_URL="mysql://root:password@127.0.0.1:3306/bbdd_telefonia?serverVersion=5.7&charset=utf8mb4"
+DATABASE_URL="mysql://usuario:contraseña@127.0.0.1:3306/bbdd_telefonia?serverVersion=5.7&charset=utf8mb4"
 ```
 
-### 4. Ejecutar migraciones
+### 4. Crear base de datos y ejecutar migraciones
 ```bash
+php bin/console doctrine:database:create
 php bin/console doctrine:migrations:migrate
 ```
 
-### 5. Iniciar servidor
+### 5. Iniciar el servidor
+Tienes dos opciones para levantar el entorno local:
 ```bash
-# Opción 1: Servidor simple
-php -S localhost:8888 -t public
+# Opción 1: Servidor interno de PHP
+php -S localhost:8080 -t public
 
-# Opción 2: Symfony CLI
-symfony serve
+# Opción 2: Symfony CLI (recomendado)
+symfony server:start
 ```
 
-### 6. Abrir en navegador
-```
-http://localhost:8888/index.html
+### 6. Acceder a la aplicación
+Abre tu navegador web e ingresa a:
+```text
+http://127.0.0.1:8000
 ```
 
-## API Endpoints
+## API endpoints
 
 ### Búsqueda
-```bash
+```http
 GET /api/contactos?q=busqueda
 ```
-Retorna array de contactos coincidentes.
+*Retorna un array JSON con los contactos coincidentes.*
 
-### Crear
-```bash
+### Crear contacto
+```http
 POST /api/contactos
 Content-Type: application/json
 
@@ -82,8 +87,8 @@ Content-Type: application/json
 }
 ```
 
-### Actualizar
-```bash
+### Actualizar contacto
+```http
 PUT /api/contactos/123
 Content-Type: application/json
 
@@ -95,24 +100,22 @@ Content-Type: application/json
 }
 ```
 
-### Eliminar Uno
-```bash
+### Eliminar un contacto
+```http
 DELETE /api/contactos/123
 ```
 
-### Eliminar Todos
-```bash
+### Eliminar todos los contactos
+```http
 DELETE /api/contactos/batch/todos
 ```
 
 ### Importar CSV
-```bash
+```http
 POST /api/contactos/importar
 Content-Type: multipart/form-data
-
-[Form Data]
-archivo_csv: <archivo.csv>
 ```
+**Form Data esperado:** `archivo_csv: <archivo.csv>`
 
 **Formato CSV esperado:**
 ```csv
@@ -121,69 +124,55 @@ Juan Pérez,IT,1234,juan@example.com
 Maria González,RRHH,5678,maria@example.com
 ```
 
-## Estructura del Proyecto
+## Estructura del proyecto
 
-```
+```text
 src/
 ├── Controller/
-│   └── ContactoController.php    # REST API endpoints
+│   └── ContactoController.php    # Endpoints de la API REST
 ├── Entity/
-│   └── Contacto.php              # Doctrine entity con validaciones
+│   └── Contacto.php              # Entidad Doctrine con reglas de validación
 ├── Repository/
-│   └── ContactoRepository.php    # Métodos de búsqueda avanzada
+│   └── ContactoRepository.php    # Métodos de búsqueda avanzada en base de datos
 ├── Service/
-│   ├── ContactoService.php       # Lógica de negocio
-│   └── CsvImportService.php      # Importación de CSV
-
+│   ├── ContactoService.php       # Lógica de negocio principal
+│   └── CsvImportService.php      # Lógica de procesamiento de archivos CSV
+│
 public/
-├── index.html                    # Interfaz de usuario
-├── script.js                     # Lógica del frontend
-└── styles.css                    # Estilos CSS
-
-migrations/                       # Migraciones de BD
+  ├── index.html                    # Interfaz de usuario (Punto de entrada)
+  ├── script.js                     # Lógica del frontend (Llamada API, DOM)
+  └── styles.css                    # Estilos visuales
 ```
 
 ## Validaciones
 
-### Campo: Nombre
-- Obligatorio
-- Máximo 150 caracteres
+Las validaciones se manejan desde `src/Entity/Contacto.php`. Si fallan, la API retorna los mensajes de error en formato JSON indicando el campo problemático.
 
-### Campo: Departamento
-- Obligatorio
-- Máximo 150 caracteres
+- **Nombre:** Obligatorio | Máximo 150 caracteres.
+- **Departamento:** Obligatorio | Máximo 150 caracteres.
+- **Extensión:** Obligatorio en creación | Máximo 13 caracteres | Solo admite números.
+- **Email:** Opcional | Debe tener un formato de correo válido.
+- **Prevención de duplicados:** No se pueden crear contactos con la misma combinación exacta de *Nombre, departamento y extensión*. Durante la importación de CSV, los duplicados se omiten automáticamente sin interrumpir el proceso.
 
-### Campo: Email
-- Opcional
-- Debe ser formato válido de email
+## Mejoras sobre la versión anterior
 
-### Campo: Extensión
-- Obligatorio en creación
-- Máximo 15 caracteres
-- Solo números
+| Característica | Versión Anterior | Versión Actual (Symfony) |
+|----------------|------------------|--------------------------|
+| **Framework** | - (PHP Puro)     | Symfony 7.4              |
+| **ORM** | Consultas SQL manuales | Doctrine ORM       |
+| **Validación** | Scripts Ad-hoc   | Centralizada (Validator) |
+| **Seguridad** | Manual           | Automática (Escapado, inyecciones) |
+| **Testing** | Inexistente      | Fácil de implementar (PHPUnit) |
+| **Escalabilidad** | Limitada      | Alta                     |
 
-### Duplicados
-Se previene crear contactos con: mismo nombre + departamento + extensión
-
-## Mejoras sobre Versión Anterior
-
-| Feature | Antes | Ahora |
-|---------|-------|-------|
-| Framework | - | Symfony 7.4 |
-| ORM | SQL manual | Doctrine |
-| Validación | Ad-hoc | Centralizada |
-| Seguridad | Manual | Automática |
-| Testing | - | Fácil |
-| Escalabilidad | Limitada | Excelente |
-
-## Desarrollo
+## Desarrollo y mantenimiento
 
 ### Ejecutar tests
 ```bash
 php bin/phpunit
 ```
 
-### Crear nueva migración
+### Crear y aplicar una nueva migración
 ```bash
 php bin/console doctrine:migrations:diff
 php bin/console doctrine:migrations:migrate
@@ -194,33 +183,15 @@ php bin/console doctrine:migrations:migrate
 php bin/console cache:clear
 ```
 
-## Troubleshooting
+## Troubleshooting (solución de problemas)
 
-### Error de conexión a BD
-- Verificar credenciales en `.env`
-- Asegurar que MySQL está corriendo
-- Verificar que la base de datos existe
+**Error de conexión a la base de datos:**
+- Verifica las credenciales en `.env.local`.
+- Asegúrate de que el servicio de MySQL/MariaDB esté en ejecución.
+- Comprueba que ejecutaste `php bin/console doctrine:database:create`.
 
-### Assets no cargan (JS/CSS)
-```bash
-php bin/console assets:install public
+**Los Assets (JS/CSS) no cargan:**
+- Ejecuta el siguiente comando para reinstalar los assets públicos:
+  ```bash
+  php bin/console assets:install public
 ```
-
-### Errores de validación
-- Revisar `src/Entity/Contacto.php` para las reglas
-- Los mensajes se retornan en JSON con el campo específico
-
-## Notas
-
-- Las búsquedas usan lógica AND entre palabras
-- El CSV import detecta automáticamente delimitadores (coma o punto y coma)
-- Se limpia encoding ISO-8859-1 a UTF-8 automáticamente
-- Los contactos duplicados se saltan sin error durante importación
-
-## Licencia
-
-MIT
-
-## Contacto
-
-Para soporte o preguntas sobre la migración a Symfony, consulta `MIGRATION_COMPLETE.md`.

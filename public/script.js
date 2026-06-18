@@ -70,7 +70,6 @@ const panelNuevoUsuario = document.getElementById('panelNuevoUsuario');
 const guardarNuevoUsuario = document.getElementById('guardarNuevoUsuario');
 const cancelarNuevoUsuario = document.getElementById('cancelarNuevoUsuario');
 const btnVerUsuarios = document.getElementById('btnVerUsuarios');
-const panelUsuarios = document.getElementById('panel-usuarios');
 
 let contactosActuales = [];
 let idEditar = null;
@@ -787,26 +786,47 @@ const listaUsuariosUl = document.getElementById('lista-usuarios-ul');
  * Muestra u oculta la lista de usuarios dentro del panel de sesión
  */
 async function cargarListadoUsuarios() {
-    try {
-        // Usam fetchApi para enviar automáticamente la sesión de Symfony
-        const respuesta = await fetchApi('/api/users');
+    const panelUsuarios = document.getElementById('panel-usuarios');
+    
+    if (!panelUsuarios.classList.contains('oculto')) {
+        panelUsuarios.classList.add('oculto');
+        return;
+    }
 
-        if (!respuesta.ok) {
-            throw new Error('No tienes permisos o hubo un error en el servidor');
-        }
+    try {
+        const respuesta = await fetchApi('/api/users');
+        if (!respuesta.ok) throw new Error('No tienes permisos');
 
         const datos = await respuesta.json();
         renderizarUsuarios(datos.usuarios);
-        
-        // Muestra el panel original de abajo y le damos el foco
         panelUsuarios.classList.remove('oculto');
-        panelUsuarios.focus();
 
     } catch (error) {
-        console.error('Error al cargar la lista de usuarios:', error);
+        console.error('Error al cargar la lista:', error);
         mostrarMensaje('Error al cargar usuarios. Comprueba tus permisos.', true);
     }
 }
+
+// Acción del botón "Cerrar" pequeñito
+document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'btn-cerrar-usuarios') {
+        document.getElementById('panel-usuarios').classList.add('oculto');
+    }
+});
+
+// Asignar el evento al botón principal
+document.getElementById('btnVerUsuarios')?.addEventListener('click', cargarListadoUsuarios);
+
+// Modificamos el escape general para que también oculte la lista interna
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && panelPerfil && !panelPerfil.classList.contains('oculto')) {
+        panelPerfil.classList.add('oculto');
+        btnPerfilToggle.focus();
+        
+        const panelUsuarios = document.getElementById('panel-usuarios');
+        if (panelUsuarios) panelUsuarios.classList.add('oculto');
+    }
+});
 
 /**
  * Renderiza los usuarios de forma limpia dentro del desplegable

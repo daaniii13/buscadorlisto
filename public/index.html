@@ -22,23 +22,27 @@
                 <button type="button" class="boton boton--principal" style="width: 100%;" id="btnLogin">Ingresar</button>
                 <small class="login-panel__error oculto" id="loginError"></small>
             </div>
+            
             <div id="loggedInPanel" class="oculto">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                     <span class="login-panel__badge" id="rolBadge"></span>
                     <p id="usuarioNombre" style="font-weight: 700; margin: 0; font-size: 14px;"></p>
                 </div>
                 
-                <button type="button" class="boton boton--principal" id="btnNuevoUsuario" style="width: 100%; 
-                    margin-bottom: 10px; border-color: #8b5cf6; color: #8b5cf6; display: none;">+ Crear Usuario</button>
+                <button type="button" class="boton boton--principal" id="btnNuevoUsuario" style="width: 100%; margin-bottom: 10px; border-color: #8b5cf6; color: #8b5cf6; display: none;">+ Crear Usuario</button>
                 
-                <button type="button" class="boton boton--secundario" id="btnVerUsuarios" style="width: 100%; 
-                    margin-bottom: 10px; display: none;">Ver lista de usuarios</button>
+                <button type="button" class="boton boton--secundario" id="btnVerUsuarios" style="width: 100%; margin-bottom: 10px; display: none;">Ver lista de usuarios</button>
 
+                <div id="panel-usuarios" class="oculto" role="region" aria-label="Lista de usuarios" style="margin-bottom: 10px;">
+                    <div style="border: 1px solid #e5e7eb; border-left: 4px solid #8b5cf6; border-radius: 8px; padding: 10px; background: #f8fafc;">
+                        <ul id="lista-usuarios-ul" role="list" style="list-style: none; padding: 0; margin: 0; max-height: 190px; overflow-y: auto;">
+                        </ul>
+                    </div>
+                </div>
                 <button type="button" class="boton boton--secundario" style="width: 100%;" id="btnLogout">Cerrar sesión</button>
             </div>
         </div>
     </div>
-
     <div class="contenedor">
         <div class="cabecera">
             <h1>Buscador de contactos</h1>
