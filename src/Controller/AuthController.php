@@ -119,18 +119,11 @@ class AuthController extends AbstractController {
      */
     #[Route('/api/users', name: 'api_users_create', methods: ['POST'])]
     #[IsGranted('ROLE_ADMIN')]
+    #[Route('/api/users', name: 'api_users_create', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
     public function crearUsuario(Request $request, UserService $userService): JsonResponse {
         try {
             $datos = json_decode($request->getContent(), true);
-
-            if (!is_array($datos)) {
-                return $this->json(['ok' => false, 'error' => 'JSON inválido'], Response::HTTP_BAD_REQUEST);
-            }
-
-            if (empty($datos['email']) || empty($datos['password'])) {
-                return $this->json(['ok' => false, 'error' => 'Email y contraseña son obligatorios'], Response::HTTP_BAD_REQUEST);
-            }
-
             $roles = $datos['roles'] ?? ['ROLE_ELEVATED'];
             $nombre = $datos['nombre'] ?? null;
             $usuario = $userService->crearUsuario($datos['email'], $datos['password'], $roles, $nombre);
@@ -140,6 +133,9 @@ class AuthController extends AbstractController {
                 'mensaje' => 'Usuario creado correctamente',
                 'usuario' => $this->serializarUsuario($usuario),
             ], Response::HTTP_CREATED);
+            
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['ok' => false, 'error' => $e->getMessage()], Response::HTTP_BAD_REQUEST); 
         } catch (\Exception $e) {
             return $this->json(['ok' => false, 'error' => 'Error al crear usuario: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
         }

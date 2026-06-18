@@ -70,6 +70,7 @@ const panelNuevoUsuario = document.getElementById('panelNuevoUsuario');
 const guardarNuevoUsuario = document.getElementById('guardarNuevoUsuario');
 const cancelarNuevoUsuario = document.getElementById('cancelarNuevoUsuario');
 const btnVerUsuarios = document.getElementById('btnVerUsuarios');
+const panelUsuarios = document.getElementById('panel-usuarios');
 
 let contactosActuales = [];
 let idEditar = null;
@@ -116,8 +117,9 @@ function actualizarInterfazAuth() {
         
         const esAdmin = usuarioActual.roles.includes('ROLE_ADMIN');
         rolBadge.textContent = esAdmin ? 'Admin' : 'Mod';
+        
         if (btnNuevoUsuario) btnNuevoUsuario.style.display = esAdmin ? 'block' : 'none';
-        if (btnVerUsuarios) btnVerUsuarios.style.display = esAdmin ? 'block' : 'none'; // <-- LÍNEA CORREGIDA AÑADIDA AQUÍ
+        if (btnVerUsuarios) btnVerUsuarios.style.display = esAdmin ? 'block' : 'none';
 
     } else {
         accionesAdmin.style.display = 'none';
@@ -126,7 +128,9 @@ function actualizarInterfazAuth() {
         btnPerfilToggle.textContent = 'Iniciar sesión';
         panelNuevo.classList.add('oculto');
         panelNuevoUsuario?.classList.add('oculto');
-        if (panelUsuarios) panelUsuarios.classList.add('oculto'); // Ocultar el panel de usuarios si se cierra sesión
+        
+        // Oculta también el panel de gestión de usuarios si se cierra sesión
+        if (panelUsuarios) panelUsuarios.classList.add('oculto');
     }
     renderizarContactos(contactosActuales);
 }
@@ -783,25 +787,24 @@ const listaUsuariosUl = document.getElementById('lista-usuarios-ul');
  * Muestra u oculta la lista de usuarios dentro del panel de sesión
  */
 async function cargarListadoUsuarios() {
-    // Si ya está abierto, lo cerramos
-    if (!contenedorListaUsuarios.classList.contains('oculto')) {
-        contenedorListaUsuarios.classList.add('oculto');
-        btnVerUsuarios.textContent = 'Ver lista de usuarios';
-        return;
-    }
-
     try {
+        // Usam fetchApi para enviar automáticamente la sesión de Symfony
         const respuesta = await fetchApi('/api/users');
-        if (!respuesta.ok) throw new Error('No tienes permisos');
+
+        if (!respuesta.ok) {
+            throw new Error('No tienes permisos o hubo un error en el servidor');
+        }
 
         const datos = await respuesta.json();
         renderizarUsuarios(datos.usuarios);
         
-        contenedorListaUsuarios.classList.remove('oculto');
-        btnVerUsuarios.textContent = 'Ocultar lista de usuarios';
+        // Muestra el panel original de abajo y le damos el foco
+        panelUsuarios.classList.remove('oculto');
+        panelUsuarios.focus();
 
     } catch (error) {
-        mostrarMensaje('Error al cargar la lista.', true);
+        console.error('Error al cargar la lista de usuarios:', error);
+        mostrarMensaje('Error al cargar usuarios. Comprueba tus permisos.', true);
     }
 }
 
@@ -815,11 +818,8 @@ function renderizarUsuarios(usuarios) {
         const li = document.createElement('li');
         li.tabIndex = 0;
         li.setAttribute('role', 'listitem');
-        
-        // Estilos limpios integrados
         li.style.cssText = "display: flex; flex-direction: column; padding: 10px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 13px; outline: none; transition: border-color 0.2s;";
         
-        // Formatear el rol para que sea legible y bonito
         const esAdmin = usuario.roles.includes('ROLE_ADMIN');
         const rolBadge = esAdmin ? 
             '<span style="background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;">Admin</span>' : 
@@ -835,7 +835,6 @@ function renderizarUsuarios(usuarios) {
         // Navegación y accesibilidad visual
         li.addEventListener('focus', () => li.style.borderColor = '#8b5cf6');
         li.addEventListener('blur', () => li.style.borderColor = '#e2e8f0');
-        
         li.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 console.log('Usuario interactuado:', usuario.email);

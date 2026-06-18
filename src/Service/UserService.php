@@ -17,11 +17,13 @@ class UserService {
      * Crea un nuevo usuario con validación
      */
     public function crearUsuario(string $email, string $password, array $roles = ['ROLE_ELEVATED'], ?string $nombre = null): User {
+        if ($this->userRepository->findOneByEmail($email)) {
+            throw new \InvalidArgumentException('El correo electrónico ya está registrado.');
+        }
         $usuario = new User();
         $usuario->setEmail($email);
         $usuario->setRoles($roles);
-        $usuario->setNombre($nombre); // <-- Añadir esta línea
-        
+        $usuario->setNombre($nombre);
         $hashedPassword = $this->passwordHasher->hashPassword($usuario, $password);
         $usuario->setPassword($hashedPassword);
 
